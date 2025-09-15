@@ -21,10 +21,10 @@ TEST(Map, Basic) {
 
     EXPECT_EQ(map0[k0], 1);
 
-    EXPECT_EQ((int)map0.size(), 1);
+    EXPECT_EQ(map0.size(), 1);
 
     map0.Set(k0, 2);
-    EXPECT_EQ((int)map0.size(), 1);
+    EXPECT_EQ(map0.size(), 1);
 
     auto it = map0.find(k0);
     EXPECT_TRUE(it != map0.end());
@@ -38,7 +38,7 @@ TEST(Map, PODKey) {
     map0.Set(1, 2);
     // float key is different
     map0.Set(1.1, 3);
-    EXPECT_EQ((int)map0.size(), 2);
+    EXPECT_EQ(map0.size(), 2);
 
     auto it = map0.find(1.1);
     EXPECT_TRUE(it != map0.end());
@@ -50,7 +50,7 @@ TEST(Map, Object) {
     TInt z(100);
     TInt zz(1000);
     Map<TInt, TInt> dict{{x, z}, {z, zz}};
-    EXPECT_EQ((int)dict.size(), 2);
+    EXPECT_EQ(dict.size(), 2);
     EXPECT_TRUE(dict[x].same_as(z));
     EXPECT_TRUE(dict.count(z));
     EXPECT_TRUE(!dict.count(zz));
@@ -60,7 +60,7 @@ TEST(Map, Str) {
     TInt x(1);
     TInt z(100);
     Map<String, TInt> dict{{"x", z}, {"z", z}};
-    EXPECT_EQ((int)dict.size(), 2);
+    EXPECT_EQ(dict.size(), 2);
     EXPECT_TRUE(dict["x"].same_as(z));
 }
 
@@ -73,10 +73,10 @@ TEST(Map, Mutate) {
     EXPECT_TRUE(dict[x].same_as(z));
     dict.Set(x, zz);
     auto dict2 = dict;
-    EXPECT_EQ((int)dict2.count(z), 1);
+    EXPECT_EQ(dict2.count(z), 1);
     dict.Set(zz, x);
-    EXPECT_EQ((int)dict2.count(zz), 0);
-    EXPECT_EQ((int)dict.count(zz), 1);
+    EXPECT_EQ(dict2.count(zz), 0);
+    EXPECT_EQ(dict.count(zz), 1);
 
     auto it = dict.find(zz);
     EXPECT_TRUE(it != dict.end() && (*it).second.same_as(x));
@@ -89,9 +89,9 @@ TEST(Map, Clear) {
     TInt x(1);
     TInt z(100);
     Map<TInt, TInt> dict{{x, z}, {z, z}};
-    EXPECT_EQ((int)dict.size(), 2);
+    EXPECT_EQ(dict.size(), 2);
     dict.clear();
-    EXPECT_EQ((int)dict.size(), 0);
+    EXPECT_EQ(dict.size(), 0);
 }
 
 TEST(Map, Insert) {
@@ -144,7 +144,7 @@ TEST(Map, AnyImplicitConversion) {
     Map<Any, Any> map0;
     map0.Set(1, 2);
     map0.Set(2, 3.1);
-    EXPECT_EQ((int)map0.size(), 2);
+    EXPECT_EQ(map0.size(), 2);
 
     // check will trigger copy
     AnyView view0 = map0;
@@ -315,7 +315,7 @@ TEST(Map, MapInsertOrder) {
         auto item2 = order.back();
         order.erase(order.end() - 1);
         check_map(m0, order.size(), order);
-        EXPECT_NE((int)m0.size(), 0);
+        EXPECT_NE(m0.size(), 0);
         // put back some items
         order.push_back(item2);
         m0.Set("hello" + std::to_string(item2), item2);
@@ -340,7 +340,7 @@ TEST(Map, EmptyIter) {
     for (int i = 0; i < 10; ++i) {
         m0.erase("hello" + std::to_string(i));
     }
-    EXPECT_EQ((int)m0.size(), 0);
+    EXPECT_EQ(m0.size(), 0);
     // now m0 is dense map with all empty slots
     EXPECT_EQ(m0.begin(), m0.end());
 }
@@ -348,7 +348,7 @@ TEST(Map, EmptyIter) {
 TEST(Map, DuplicatedKeysInit) {
     std::vector<std::pair<String, int>> data = {{"a", 1}, {"a", 2}, {"a", 3}};
     Map<String, int> map(data.begin(), data.end());
-    EXPECT_EQ((int)map.size(), 1);
+    EXPECT_EQ(map.size(), 1);
     EXPECT_EQ(map["a"], 3);
 }
 

@@ -30,12 +30,12 @@ TEST(RValueRef, Basic) {
                 return arr;
             });
     auto a = append(RValueRef(Array<int>({1, 2})), 3, true).cast<Array<int>>();
-    EXPECT_EQ((int)a.size(), 3);
+    EXPECT_EQ(a.size(), 3);
     a = append(RValueRef(std::move(a)), 4, true).cast<Array<int>>();
-    EXPECT_EQ((int)a.size(), 4);
+    EXPECT_EQ(a.size(), 4);
     // pass in lvalue instead, the append still will succeed but array will not be unique
     a = append(a, 5, false).cast<Array<int>>();
-    EXPECT_EQ((int)a.size(), 5);
+    EXPECT_EQ(a.size(), 5);
 }
 
 TEST(RValueRef, ParamChecking) {
