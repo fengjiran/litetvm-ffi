@@ -52,9 +52,9 @@ TVM_FFI_STATIC_INIT_BLOCK({
 
 TEST(Reflection, GetFieldByteOffset) {
     EXPECT_EQ(details::ObjectUnsafe::GetObjectOffsetToSubclass<TNumberObj>(), 32);
-    EXPECT_EQ(reflection::GetFieldByteOffsetToObject(&TestObjA::x), sizeof(TVMFFIObject));
-    EXPECT_EQ(reflection::GetFieldByteOffsetToObject(&TestObjA::y), 8 + sizeof(TVMFFIObject));
-    EXPECT_EQ(reflection::GetFieldByteOffsetToObject(&TIntObj::value), sizeof(TVMFFIObject));
+    EXPECT_EQ((size_t)reflection::GetFieldByteOffsetToObject(&TestObjA::x), sizeof(TVMFFIObject));
+    EXPECT_EQ((size_t)reflection::GetFieldByteOffsetToObject(&TestObjA::y), 8 + sizeof(TVMFFIObject));
+    EXPECT_EQ((size_t)reflection::GetFieldByteOffsetToObject(&TIntObj::value), sizeof(TVMFFIObject));
 }
 
 TEST(Reflection, FieldGetter) {
@@ -128,14 +128,14 @@ TEST(Reflection, ForEachFieldInfo) {
     reflection::ForEachFieldInfo(info, [&](const TVMFFIFieldInfo* field_info) {
         field_name_to_offset.Set(String(field_info->name), field_info->offset);
     });
-    EXPECT_EQ(field_name_to_offset["x"], sizeof(TVMFFIObject));
-    EXPECT_EQ(field_name_to_offset["y"], 8 + sizeof(TVMFFIObject));
-    EXPECT_EQ(field_name_to_offset["z"], 16 + sizeof(TVMFFIObject));
+    EXPECT_EQ((size_t)field_name_to_offset["x"], sizeof(TVMFFIObject));
+    EXPECT_EQ((size_t)field_name_to_offset["y"], 8 + sizeof(TVMFFIObject));
+    EXPECT_EQ((size_t)field_name_to_offset["z"], 16 + sizeof(TVMFFIObject));
 }
 
 TEST(Reflection, TypeAttrColumn) {
     reflection::TypeAttrColumn size_attr("test.size");
-    EXPECT_EQ(size_attr[TIntObj::_type_index].cast<int>(), sizeof(TIntObj));
+    EXPECT_EQ((size_t)size_attr[TIntObj::_type_index].cast<int>(), sizeof(TIntObj));
 }
 
 TVM_FFI_STATIC_INIT_BLOCK({
@@ -155,7 +155,7 @@ TEST(Reflection, AccessPath) {
     // Test basic path construction and ToSteps()
     refl::AccessPath path = refl::AccessPath::Root()->Attr("body")->ArrayItem(1);
     auto steps = path->ToSteps();
-    EXPECT_EQ(steps.size(), 2);
+    EXPECT_EQ((int)steps.size(), 2);
     EXPECT_EQ(steps[0]->kind, refl::AccessKind::kAttr);
     EXPECT_EQ(steps[1]->kind, refl::AccessKind::kArrayItem);
     EXPECT_EQ(steps[0]->key.cast<String>(), "body");
@@ -184,7 +184,7 @@ TEST(Reflection, AccessPath) {
     // Test Root path
     refl::AccessPath root = refl::AccessPath::Root();
     auto root_steps = root->ToSteps();
-    EXPECT_EQ(root_steps.size(), 0);
+    EXPECT_EQ((int)root_steps.size(), 0);
     EXPECT_EQ(root->depth, 0);
     EXPECT_TRUE(root->IsPrefixOf(path));
     EXPECT_TRUE(root->IsPrefixOf(root));
@@ -198,7 +198,7 @@ TEST(Reflection, AccessPath) {
     // Test MapItem access
     refl::AccessPath map_path = refl::AccessPath::Root()->Attr("data")->MapItem("key1");
     auto map_steps = map_path->ToSteps();
-    EXPECT_EQ(map_steps.size(), 2);
+    EXPECT_EQ((int)map_steps.size(), 2);
     EXPECT_EQ(map_steps[0]->kind, refl::AccessKind::kAttr);
     EXPECT_EQ(map_steps[1]->kind, refl::AccessKind::kMapItem);
     EXPECT_EQ(map_steps[0]->key.cast<String>(), "data");
@@ -207,14 +207,14 @@ TEST(Reflection, AccessPath) {
     // Test MapItemMissing access
     refl::AccessPath map_missing_path = refl::AccessPath::Root()->MapItemMissing(42);
     auto map_missing_steps = map_missing_path->ToSteps();
-    EXPECT_EQ(map_missing_steps.size(), 1);
+    EXPECT_EQ((int)map_missing_steps.size(), 1);
     EXPECT_EQ(map_missing_steps[0]->kind, refl::AccessKind::kMapItemMissing);
     EXPECT_EQ(map_missing_steps[0]->key.cast<int64_t>(), 42);
 
     // Test ArrayItemMissing access
     refl::AccessPath array_missing_path = refl::AccessPath::Root()->ArrayItemMissing(5);
     auto array_missing_steps = array_missing_path->ToSteps();
-    EXPECT_EQ(array_missing_steps.size(), 1);
+    EXPECT_EQ((int)array_missing_steps.size(), 1);
     EXPECT_EQ(array_missing_steps[0]->kind, refl::AccessKind::kArrayItemMissing);
     EXPECT_EQ(array_missing_steps[0]->key.cast<int64_t>(), 5);
 

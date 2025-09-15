@@ -125,7 +125,7 @@ TEST(Variant, AllObjectRef) {
     EXPECT_TRUE(v0.same_as(v2));
     // assignment operator
     v0 = Array<TInt>({TInt(2), TInt(3)});
-    EXPECT_EQ(v0.get<Array<TInt>>().size(), 2);
+    EXPECT_EQ((int)v0.get<Array<TInt>>().size(), 2);
     EXPECT_EQ(v0.get<Array<TInt>>()[0]->value, 2);
     EXPECT_EQ(v0.get<Array<TInt>>()[1]->value, 3);
     EXPECT_EQ(sizeof(v0), sizeof(ObjectRef));

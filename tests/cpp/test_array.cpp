@@ -12,20 +12,20 @@ using namespace litetvm::ffi::testing;
 
 TEST(Array, basic) {
     Array<TInt> arr = {TInt(11), TInt(12)};
-    EXPECT_EQ(arr.capacity(), 2);
-    EXPECT_EQ(arr.size(), 2);
+    EXPECT_EQ((int)arr.capacity(), 2);
+    EXPECT_EQ((int)arr.size(), 2);
     TInt v1 = arr[0];
-    EXPECT_EQ(v1->value, 11);
+    EXPECT_EQ((int)v1->value, 11);
 }
 
 TEST(Array, COWSet) {
     Array<TInt> arr = {TInt(11), TInt(12)};
     Array<TInt> arr2 = arr;
-    EXPECT_EQ(arr.use_count(), 2);
+    EXPECT_EQ((int)arr.use_count(), 2);
     arr.Set(1, TInt(13));
-    EXPECT_EQ(arr.use_count(), 1);
-    EXPECT_EQ(arr[1]->value, 13);
-    EXPECT_EQ(arr2[1]->value, 12);
+    EXPECT_EQ((int)arr.use_count(), 1);
+    EXPECT_EQ((int)arr[1]->value, 13);
+    EXPECT_EQ((int)arr2[1]->value, 12);
 }
 
 TEST(Array, MutateInPlaceForUniqueReference) {
@@ -113,8 +113,8 @@ TEST(Array, ResizeReserveClear) {
         ASSERT_GE(a.capacity(), n);
         a.clear();
         b.clear();
-        ASSERT_EQ(a.size(), 0);
-        ASSERT_EQ(b.size(), 0);
+        ASSERT_EQ((int)a.size(), 0);
+        ASSERT_EQ((int)b.size(), 0);
     }
 }
 
@@ -129,17 +129,17 @@ TEST(Array, InsertErase) {
             b.insert(b.begin() + pos, pos);
             ASSERT_EQ(a.front(), b.front());
             ASSERT_EQ(a.back(), b.back());
-            ASSERT_EQ(a.size(), n + 1);
-            ASSERT_EQ(b.size(), n + 1);
+            ASSERT_EQ((int)a.size(), n + 1);
+            ASSERT_EQ((int)b.size(), n + 1);
             for (int k = 0; k <= n; ++k) {
-                ASSERT_EQ(a[k], b[k]);
+                ASSERT_EQ((int)a[k], b[k]);
             }
             a.erase(a.begin() + pos);
             b.erase(b.begin() + pos);
         }
         ASSERT_EQ(a.front(), b.front());
         ASSERT_EQ(a.back(), b.back());
-        ASSERT_EQ(a.size(), n);
+        ASSERT_EQ((int)a.size(), n);
     }
 }
 

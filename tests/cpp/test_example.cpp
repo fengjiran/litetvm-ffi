@@ -142,7 +142,7 @@ TEST(Example, Tensor) {
 void ExampleString() {
   namespace ffi = litetvm::ffi;
   ffi::String str = "hello world";
-  EXPECT_EQ(str.size(), 11);
+  EXPECT_EQ((int)str.size(), 11);
   std::string std_str = str;
   EXPECT_EQ(std_str, "hello world");
 }
@@ -152,7 +152,7 @@ TEST(Example, String) { ExampleString(); }
 void ExampleArray() {
   namespace ffi = litetvm::ffi;
   ffi::Array<int> numbers = {1, 2, 3};
-  EXPECT_EQ(numbers.size(), 3);
+  EXPECT_EQ((int)numbers.size(), 3);
   EXPECT_EQ(numbers[0], 1);
 
   ffi::Function head = ffi::Function::FromTyped([](const ffi::Array<int> a) { return a[0]; });
@@ -185,9 +185,9 @@ void ExampleMap() {
 
   ffi::Map<ffi::String, int> map0 = {{"Alice", 100}, {"Bob", 95}};
 
-  EXPECT_EQ(map0.size(), 2);
+  EXPECT_EQ((int)map0.size(), 2);
   EXPECT_EQ(map0.at("Alice"), 100);
-  EXPECT_EQ(map0.count("Alice"), 1);
+  EXPECT_EQ((int)map0.count("Alice"), 1);
 }
 
 TEST(Example, Map) { ExampleMap(); }

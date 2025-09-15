@@ -38,8 +38,8 @@ TEST(StructuralEqualHash, Array) {
     EXPECT_EQ(rhs_steps[0]->kind, refl::AccessKind::kArrayItem);
     EXPECT_EQ(lhs_steps[0]->key.cast<int64_t>(), 1);
     EXPECT_EQ(rhs_steps[0]->key.cast<int64_t>(), 1);
-    EXPECT_EQ(lhs_steps.size(), 1);
-    EXPECT_EQ(rhs_steps.size(), 1);
+    EXPECT_EQ((int)lhs_steps.size(), 1);
+    EXPECT_EQ((int)rhs_steps.size(), 1);
 
     // use structural equal for checking in future parts
     // given we have done some basic checks above by directly interepret diff,

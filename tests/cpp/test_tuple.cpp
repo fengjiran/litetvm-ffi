@@ -52,7 +52,7 @@ TEST(Tuple, AnyConvert) {
     Tuple<int, TInt> tuple0(1, 2);
     AnyView view0 = tuple0;
     Array<Any> arr0 = view0.as<Array<Any>>().value();
-    EXPECT_EQ(arr0.size(), 2);
+    EXPECT_EQ((int)arr0.size(), 2);
     EXPECT_EQ(arr0[0].as<int>().value(), 1);
     EXPECT_EQ(arr0[1].as<TInt>().value()->value, 2);
 
@@ -128,7 +128,7 @@ TEST(Tuple, ArrayIterForwarding) {
     Array<Tuple<TInt, TInt>> arr0 = {t0, t1};
     std::vector<Tuple<TInt, TInt>> vec0 = {t0};
     vec0.insert(vec0.end(), arr0.begin(), arr0.end());
-    EXPECT_EQ(vec0.size(), 3);
+    EXPECT_EQ((int)vec0.size(), 3);
     EXPECT_EQ(vec0[0].get<0>()->value, 1);
     EXPECT_EQ(vec0[0].get<1>()->value, 2);
     EXPECT_EQ(vec0[1].get<0>()->value, 1);
@@ -144,7 +144,7 @@ TEST(Tuple, ArrayIterForwardSingleElem) {
     Array<Tuple<TInt>> arr0 = {t0, t1};
     std::vector<Tuple<TInt>> vec0 = {t0};
     vec0.insert(vec0.end(), arr0.begin(), arr0.end());
-    EXPECT_EQ(vec0.size(), 3);
+    EXPECT_EQ((int)vec0.size(), 3);
     EXPECT_EQ(vec0[0].get<0>()->value, 1);
     EXPECT_EQ(vec0[1].get<0>()->value, 1);
     EXPECT_EQ(vec0[2].get<0>()->value, 2);

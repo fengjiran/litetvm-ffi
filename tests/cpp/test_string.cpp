@@ -16,7 +16,7 @@ TEST(String, MoveFromStd) {
     String s(std::move(source));
     string copy = (string) s;
     EXPECT_EQ(copy, expect);
-    EXPECT_EQ(source.size(), 0);
+    EXPECT_EQ((int)source.size(), 0);
 }
 
 TEST(String, CopyFromStd) {
@@ -118,7 +118,7 @@ TEST(String, null_byte_handling) {
     String str_v2{v2};
     String str_v3{v3};
     EXPECT_EQ(str_v2.compare(str_v3), -1);
-    EXPECT_EQ(str_v2.size(), 7);
+    EXPECT_EQ((int)str_v2.size(), 7);
     // strcmp won't be able to detect the mismatch
     EXPECT_EQ(strcmp(v2.data(), v3.data()), 0);
     // string::compare can handle \0 since it knows size
@@ -132,7 +132,7 @@ TEST(String, null_byte_handling) {
     String str_v4{v4};
     String str_v5{v5};
     EXPECT_GT(str_v4.compare(str_v5), 0);
-    EXPECT_EQ(str_v4.size(), 7);
+    EXPECT_EQ((int)str_v4.size(), 7);
     // strcmp is able to detect the mismatch
     EXPECT_GT(strcmp(v4.data(), v5.data()), 0);
     // string::compare can handle \0 since it knows size
@@ -303,18 +303,18 @@ TEST(String, Any) {
 
 TEST(String, Bytes) {
     Bytes b0;
-    EXPECT_EQ(b0.size(), 0);
+    EXPECT_EQ((int)b0.size(), 0);
     EXPECT_EQ(b0.operator std::string(), "");
 
     // explicitly test zero element
     std::string s = {'\0', 'a', 'b', 'c'};
     Bytes b = s;
-    EXPECT_EQ(b.size(), 4);
+    EXPECT_EQ((int)b.size(), 4);
     EXPECT_EQ(b.operator std::string(), s);
 
     TVMFFIByteArray arr{s.data(), static_cast<size_t>(s.size())};
     Bytes b2 = arr;
-    EXPECT_EQ(b2.size(), 4);
+    EXPECT_EQ((int)b2.size(), 4);
     EXPECT_EQ(b2.operator std::string(), s);
 }
 
@@ -383,7 +383,7 @@ TEST(String, CAPIAccessor) {
     using namespace std;
     String s{"hello"};
     TVMFFIByteArray arr{s.data(), s.size()};
-    EXPECT_EQ(arr.size, 5);
+    EXPECT_EQ((int)arr.size, 5);
     EXPECT_EQ(std::string(arr.data, arr.size), "hello");
 }
 

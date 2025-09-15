@@ -29,7 +29,7 @@ Tensor Empty(Shape shape, DLDataType dtype, DLDevice device) {
 TEST(NDArray, Basic) {
     Tensor nd = Empty(Shape({1, 2, 3}), DLDataType({kDLFloat, 32, 1}), DLDevice({kDLCPU, 0}));
     Shape shape = nd.shape();
-    EXPECT_EQ(shape.size(), 3);
+    EXPECT_EQ((int)shape.size(), 3);
     EXPECT_EQ(shape[0], 1);
     EXPECT_EQ(shape[1], 2);
     EXPECT_EQ(shape[2], 3);
@@ -62,10 +62,10 @@ TEST(NDArray, DLPack) {
     EXPECT_EQ(dlpack->dl_tensor.dtype.lanes, 1);
     EXPECT_EQ(dlpack->dl_tensor.device.device_type, kDLCPU);
     EXPECT_EQ(dlpack->dl_tensor.device.device_id, 0);
-    EXPECT_EQ(dlpack->dl_tensor.byte_offset, 0);
-    EXPECT_EQ(dlpack->dl_tensor.strides[0], 6);
-    EXPECT_EQ(dlpack->dl_tensor.strides[1], 3);
-    EXPECT_EQ(dlpack->dl_tensor.strides[2], 1);
+    EXPECT_EQ((int)dlpack->dl_tensor.byte_offset, 0);
+    EXPECT_EQ((int)dlpack->dl_tensor.strides[0], 6);
+    EXPECT_EQ((int)dlpack->dl_tensor.strides[1], 3);
+    EXPECT_EQ((int)dlpack->dl_tensor.strides[2], 1);
     EXPECT_EQ(nd.use_count(), 2);
     {
         Tensor nd2 = Tensor::FromDLPack(dlpack);
@@ -79,11 +79,11 @@ TEST(NDArray, DLPack) {
 
 TEST(NDArray, DLPackVersioned) {
     DLDataType dtype = DLDataType({kDLFloat4_e2m1fn, 4, 1});
-    EXPECT_EQ(GetDataSize(2, dtype), 2 * 4 / 8);
+    EXPECT_EQ((int)GetDataSize(2, dtype), 2 * 4 / 8);
     Tensor nd = Empty({2}, dtype, DLDevice({kDLCPU, 0}));
     DLManagedTensorVersioned* dlpack = nd.ToDLPackVersioned();
-    EXPECT_EQ(dlpack->version.major, DLPACK_MAJOR_VERSION);
-    EXPECT_EQ(dlpack->version.minor, DLPACK_MINOR_VERSION);
+    EXPECT_EQ((int)dlpack->version.major, DLPACK_MAJOR_VERSION);
+    EXPECT_EQ((int)dlpack->version.minor, DLPACK_MINOR_VERSION);
     EXPECT_EQ(dlpack->dl_tensor.ndim, 1);
     EXPECT_EQ(dlpack->dl_tensor.shape[0], 2);
     EXPECT_EQ(dlpack->dl_tensor.dtype.code, kDLFloat4_e2m1fn);
@@ -91,7 +91,7 @@ TEST(NDArray, DLPackVersioned) {
     EXPECT_EQ(dlpack->dl_tensor.dtype.lanes, 1);
     EXPECT_EQ(dlpack->dl_tensor.device.device_type, kDLCPU);
     EXPECT_EQ(dlpack->dl_tensor.device.device_id, 0);
-    EXPECT_EQ(dlpack->dl_tensor.byte_offset, 0);
+    EXPECT_EQ((int)dlpack->dl_tensor.byte_offset, 0);
     EXPECT_EQ(dlpack->dl_tensor.strides[0], 1);
 
     EXPECT_EQ(nd.use_count(), 2);
