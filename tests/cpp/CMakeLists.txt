@@ -6,7 +6,6 @@ if (TVM_FFI_USE_EXTRA_CXX_API)
 endif()
 
 find_package(GTest REQUIRED)
-find_package(glog REQUIRED)
 
 add_executable(
   tvm_ffi_tests
