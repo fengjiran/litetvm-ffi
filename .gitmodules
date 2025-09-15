@@ -1,0 +1,6 @@
+[submodule "3rdparty/dlpack"]
+	path = 3rdparty/dlpack
+	url = git@github.com:dmlc/dlpack.git
+[submodule "3rdparty/libbacktrace"]
+	path = 3rdparty/libbacktrace
+	url = git@github.com:ianlancetaylor/libbacktrace.git
