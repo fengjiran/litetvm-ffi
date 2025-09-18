@@ -74,9 +74,11 @@ public:
 void TestRaiseError(String kind, String msg) {
     throw ffi::Error(kind, msg, TVM_FFI_TRACEBACK_HERE);
 }
-
-void TestApply(Function f, PackedArgs args, Any* ret) { f.CallPacked(args, ret); }
-
+TVM_FFI_NO_INLINE void TestApply(PackedArgs args, Any* ret) {
+    // keep name and no liner for testing traceback
+    auto f = args[0].cast<Function>();
+    f.CallPacked(args.Slice(1), ret);
+}
 
 TVM_FFI_STATIC_INIT_BLOCK() {
     namespace refl = litetvm::ffi::reflection;

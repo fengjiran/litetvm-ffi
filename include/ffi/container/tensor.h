@@ -335,40 +335,40 @@ public:
    * \param device The device of the Tensor.
    * \return The created Tensor.
    */
-  static Tensor FromDLPackAlloc(DLPackTensorAllocator allocator, ffi::Shape shape, DLDataType dtype,
-                                DLDevice device) {
-    if (allocator == nullptr) {
-      TVM_FFI_THROW(RuntimeError)
-          << "FromDLPackAlloc: allocator is nullptr, "
-          << "likely because TVMFFIEnvSetTensorAllocator has not been called.";
+    static Tensor FromDLPackAlloc(DLPackTensorAllocator allocator, ffi::Shape shape, DLDataType dtype,
+                                  DLDevice device) {
+        if (allocator == nullptr) {
+            TVM_FFI_THROW(RuntimeError)
+                    << "FromDLPackAlloc: allocator is nullptr, "
+                    << "likely because TVMFFIEnvSetTensorAllocator has not been called.";
+        }
+        DLTensor prototype;
+        prototype.device = device;
+        prototype.dtype = dtype;
+        prototype.shape = const_cast<int64_t*>(shape.data());
+        prototype.ndim = static_cast<int>(shape.size());
+        prototype.strides = nullptr;
+        prototype.byte_offset = 0;
+        prototype.data = nullptr;
+        DLManagedTensorVersioned* tensor = nullptr;
+        // error context to be used to propagate error
+        struct ErrorContext {
+            std::string kind;
+            std::string message;
+            static void SetError(void* error_ctx, const char* kind, const char* message) {
+                ErrorContext* error_context = static_cast<ErrorContext*>(error_ctx);
+                error_context->kind = kind;
+                error_context->message = message;
+            }
+        };
+        ErrorContext error_context;
+        int ret = (*allocator)(&prototype, &tensor, &error_context, ErrorContext::SetError);
+        if (ret != 0) {
+            throw ffi::Error(error_context.kind, error_context.message,
+                             TVMFFITraceback(__FILE__, __LINE__, __func__));
+        }
+        return Tensor(make_object<details::TensorObjFromDLPack<DLManagedTensorVersioned>>(tensor));
     }
-    DLTensor prototype;
-    prototype.device = device;
-    prototype.dtype = dtype;
-    prototype.shape = const_cast<int64_t*>(shape.data());
-    prototype.ndim = static_cast<int>(shape.size());
-    prototype.strides = nullptr;
-    prototype.byte_offset = 0;
-    prototype.data = nullptr;
-    DLManagedTensorVersioned* tensor = nullptr;
-    // error context to be used to propagate error
-    struct ErrorContext {
-      std::string kind;
-      std::string message;
-      static void SetError(void* error_ctx, const char* kind, const char* message) {
-        ErrorContext* error_context = static_cast<ErrorContext*>(error_ctx);
-        error_context->kind = kind;
-        error_context->message = message;
-      }
-    };
-    ErrorContext error_context;
-    int ret = (*allocator)(&prototype, &tensor, &error_context, ErrorContext::SetError);
-    if (ret != 0) {
-      throw ffi::Error(error_context.kind, error_context.message,
-                       TVMFFITraceback(__FILE__, __LINE__, __func__, 0));
-    }
-    return Tensor(make_object<details::TensorObjFromDLPack<DLManagedTensorVersioned>>(tensor));
-  }
 
     /*!
    * \brief Create a NDArray from a DLPack managed tensor, pre v1.0 API.
