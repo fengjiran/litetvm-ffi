@@ -253,7 +253,7 @@ public:
     Optional() = default;
     Optional(const Optional& other) : ObjectRef(other.data_) {}
     Optional(Optional&& other) noexcept : ObjectRef(std::move(other.data_)) {}
-    explicit Optional(ObjectPtr<Object> ptr) : ObjectRef(std::move(ptr)) {}
+    explicit Optional(ffi::UnsafeInit tag) : ObjectRef(tag) {}
     // nullopt hanlding
     Optional(std::nullopt_t) {}// NOLINT(*)
 
@@ -291,19 +291,20 @@ public:
         if (data_ == nullptr) {
             TVM_FFI_THROW(RuntimeError) << "Back optional access";
         }
-        return T(data_);
+        return details::ObjectUnsafe::ObjectRefFromObjectPtr<T>(data_);
     }
 
     TVM_FFI_INLINE T value() && {
         if (data_ == nullptr) {
             TVM_FFI_THROW(RuntimeError) << "Back optional access";
         }
-        return T(std::move(data_));
+        return details::ObjectUnsafe::ObjectRefFromObjectPtr<T>(std::move(data_));
     }
 
     template<typename U = std::remove_cv_t<T>>
     TVM_FFI_INLINE T value_or(U&& default_value) const {
-        return data_ != nullptr ? T(data_) : T(std::forward<U>(default_value));
+        return data_ != nullptr ? details::ObjectUnsafe::ObjectRefFromObjectPtr<T>(data_)
+                                : T(std::forward<U>(default_value));
     }
 
     TVM_FFI_INLINE explicit operator bool() const {
@@ -320,7 +321,7 @@ public:
    * \note only use this function after checking has_value()
    */
     TVM_FFI_INLINE T operator*() const& noexcept {
-        return T(data_);
+        return details::ObjectUnsafe::ObjectRefFromObjectPtr<T>(data_);
     }
 
     /*!
@@ -329,7 +330,7 @@ public:
    * \note only use this function  after checking has_value()
    */
     TVM_FFI_INLINE T operator*() && noexcept {
-        return T(std::move(data_));
+        return details::ObjectUnsafe::ObjectRefFromObjectPtr<T>(std::move(data_));
     }
 
     TVM_FFI_INLINE bool operator==(std::nullptr_t) const noexcept {
@@ -417,9 +418,6 @@ private:
     }
 };
 }// namespace ffi
-
-// Expose to the tvm namespace
-using ffi::Optional;
 }// namespace litetvm
 
 #endif//LITETVM_FFI_OPTIONAL_H

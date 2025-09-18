@@ -37,6 +37,24 @@
 extern "C" {
 #endif
 
+// TODO(tqchen): remove this once dlpack.h is updated
+typedef struct DLManagedTensorVersioned DLManagedTensorVersioned;
+
+/*
+     * \brief C-style Allocator that allocates memory for a DLPack tensor.
+     * \param prototype The prototype DLTensor to offer details about device and shape.
+     * \param out The output DLManagedTensorVersioned.
+     * \param error_ctx The context to set the error.
+     * \param SetError The function to set the error.
+     * \return 0 on success, -1 on failure.
+     *         call SetError(error_ctx, kind, message) to set the error kind and message.
+     * \note Error propagation via SetError.
+     */
+typedef int (*DLPackTensorAllocator)(                                           //
+        DLTensor* prototype, DLManagedTensorVersioned** out, void* error_ctx,   //
+        void (*SetError)(void* error_ctx, const char* kind, const char* message)//
+);
+
 #ifdef __cplusplus
 enum TVMFFITypeIndex : int32_t {
 #else
@@ -245,7 +263,6 @@ struct TVMFFIAny {
         DLDataType v_dtype;  // data type
         DLDevice v_device;   // device
         char v_bytes[8];     // small string
-        char32_t v_char32[2];// small UCS4 string and Unicode
         uint64_t v_uint64;   // uint64 repr mainly used for hashing
     };
 };
@@ -485,8 +502,8 @@ TVM_FFI_DLL TVMFFIObjectHandle TVMFFIErrorCreate(const TVMFFIByteArray* kind,
      * \param out The output NDArray handle.
      * \return 0 on success, nonzero on failure.
      */
-TVM_FFI_DLL int TVMFFINDArrayFromDLPack(DLManagedTensor* from, int32_t require_alignment,
-                                        int32_t require_contiguous, TVMFFIObjectHandle* out);
+TVM_FFI_DLL int TVMFFITensorFromDLPack(DLManagedTensor* from, int32_t require_alignment,
+                                       int32_t require_contiguous, TVMFFIObjectHandle* out);
 
 /*!
      * \brief Produce a DLManagedTensor from the array that shares data memory with the array.
@@ -494,7 +511,7 @@ TVM_FFI_DLL int TVMFFINDArrayFromDLPack(DLManagedTensor* from, int32_t require_a
      * \param out The DLManagedTensor handle.
      * \return 0 on success, nonzero on failure.
      */
-TVM_FFI_DLL int TVMFFINDArrayToDLPack(TVMFFIObjectHandle from, DLManagedTensor** out);
+TVM_FFI_DLL int TVMFFITensorToDLPack(TVMFFIObjectHandle from, DLManagedTensor** out);
 
 /*!
      * \brief Produce a managed NDArray from a DLPack tensor.
@@ -504,10 +521,10 @@ TVM_FFI_DLL int TVMFFINDArrayToDLPack(TVMFFIObjectHandle from, DLManagedTensor**
      * \param out The output NDArray handle.
      * \return 0 on success, nonzero on failure.
      */
-TVM_FFI_DLL int TVMFFINDArrayFromDLPackVersioned(DLManagedTensorVersioned* from,
-                                                 int32_t require_alignment,
-                                                 int32_t require_contiguous,
-                                                 TVMFFIObjectHandle* out);
+TVM_FFI_DLL int TVMFFITensorFromDLPackVersioned(DLManagedTensorVersioned* from,
+                                                int32_t require_alignment,
+                                                int32_t require_contiguous,
+                                                TVMFFIObjectHandle* out);
 
 /*!
      * \brief Produce a DLManagedTensor from the array that shares data memory with the array.
@@ -515,8 +532,29 @@ TVM_FFI_DLL int TVMFFINDArrayFromDLPackVersioned(DLManagedTensorVersioned* from,
      * \param out The DLManagedTensor handle.
      * \return 0 on success, nonzero on failure.
      */
-TVM_FFI_DLL int TVMFFINDArrayToDLPackVersioned(TVMFFIObjectHandle from,
-                                               DLManagedTensorVersioned** out);
+TVM_FFI_DLL int TVMFFITensorToDLPackVersioned(TVMFFIObjectHandle from,
+                                              DLManagedTensorVersioned** out);
+
+//---------------------------------------------------------------
+// Section: string/bytes support APIs.
+// These APIs are used to simplify the string/bytes construction
+//---------------------------------------------------------------
+/*!
+     * \brief Reinterpret the content of TVMFFIByteArray to String.
+     * \param input The TVMFFIByteArray to convert.
+     * \param out The output String owned by the caller, maybe a SmallStr or a Str object.
+     * \return 0 on success, nonzero on failure.
+     */
+TVM_FFI_DLL int TVMFFIStringFromByteArray(const TVMFFIByteArray* input, TVMFFIAny* out);
+
+/*!
+     * \brief Reinterpret the content of TVMFFIByteArray to Bytes.
+     * \param input The TVMFFIByteArray to convert.
+     * \param out The output Bytes owned by the caller, maybe a SmallBytes or a Bytes object.
+     * \return 0 on success, nonzero on failure.
+     */
+TVM_FFI_DLL int TVMFFIBytesFromByteArray(const TVMFFIByteArray* input, TVMFFIAny* out);
+
 
 //---------------------------------------------------------------
 // Section: dtype string support APIs.

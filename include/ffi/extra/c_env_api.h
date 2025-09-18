@@ -39,22 +39,44 @@ TVM_FFI_DLL int TVMFFIEnvSetStream(int32_t device_type, int32_t device_id,
      * \param device_id The id of the device.
      * \return The current stream of the device.
      */
-TVM_FFI_DLL TVMFFIStreamHandle TVMFFIEnvGetCurrentStream(int32_t device_type, int32_t device_id);
+TVM_FFI_DLL TVMFFIStreamHandle TVMFFIEnvGetStream(int32_t device_type, int32_t device_id);
 
-    /*!
+/*!
+ * \brief FFI function to set the current DLPack allocator in thread-local(TLS) context
+ *
+ * \param allocator The allocator to set.
+ * \param write_to_global_context Whether to also set the allocator to the global context.
+ * \param opt_out_original_allocator Output original TLS allocator if the address is not nullptr.
+ * \return 0 when success, nonzero when failure happens
+ */
+TVM_FFI_DLL int TVMFFIEnvSetTensorAllocator(DLPackTensorAllocator allocator,
+                                            int write_to_global_context,
+                                            DLPackTensorAllocator* opt_out_original_allocator);
+
+/*!
+     * \brief FFI function get the current DLPack allocator stored in context.
+     *
+     * This function first queries the global context, and if not found,
+     * queries the thread-local context.
+     *
+     * \return The current DLPack allocator.
+     */
+TVM_FFI_DLL DLPackTensorAllocator TVMFFIEnvGetTensorAllocator();
+
+/*!
  * \brief Check if there are any signals raised in the surrounding env.
  * \return 0 when success, nonzero when failure happens
  * \note Under python this function redirects to PyErr_CheckSignals
  */
-    TVM_FFI_DLL int TVMFFIEnvCheckSignals();
+TVM_FFI_DLL int TVMFFIEnvCheckSignals();
 
-    /*!
+/*!
      * \brief Register a symbol into the from the surrounding env such as python
      * \param name The name of the symbol.
      * \param symbol The symbol to register.
      * \return 0 when success, nonzero when failure happens
      */
-    TVM_FFI_DLL int TVMFFIEnvRegisterCAPI(const char* name, void* symbol);
+TVM_FFI_DLL int TVMFFIEnvRegisterCAPI(const char* name, void* symbol);
 
 
 // ----------------------------------------------------------------------------
@@ -72,7 +94,7 @@ TVM_FFI_DLL TVMFFIStreamHandle TVMFFIEnvGetCurrentStream(int32_t device_type, in
      * \return 0 when no error is thrown, -1 when failure happens
      */
 TVM_FFI_DLL int TVMFFIEnvModLookupFromImports(TVMFFIObjectHandle library_ctx, const char* func_name,
-                                           TVMFFIObjectHandle* out);
+                                              TVMFFIObjectHandle* out);
 
 /*
      * \brief Register a symbol value that will be initialized when a library with the symbol is loaded.

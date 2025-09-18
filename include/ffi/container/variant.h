@@ -54,7 +54,7 @@ protected:
     explicit VariantBase(const T& other) : ObjectRef(other) {}
     template<typename T>
     explicit VariantBase(T&& other) : ObjectRef(std::move(other)) {}
-    explicit VariantBase(ObjectPtr<Object> ptr) : ObjectRef(ptr) {}
+    explicit VariantBase(UnsafeInit tag) : ObjectRef(tag) {}
     explicit VariantBase(Any other)
         : ObjectRef(AnyUnsafe::MoveFromAnyAfterCheck<ObjectRef>(std::move(other))) {}
 
@@ -248,10 +248,6 @@ inline constexpr bool type_contains_v<Variant<V...>, T> = (type_contains_v<V, T>
 }// namespace details
 
 }// namespace ffi
-
-// Expose to the tvm namespace
-// Rationale: convinience and no ambiguity
-using ffi::Variant;
 }// namespace litetvm
 
 #endif//LITETVM_FFI_CONTAINER_VARIANT_H

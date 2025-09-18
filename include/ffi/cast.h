@@ -25,16 +25,18 @@ namespace ffi {
  */
 template<typename RefType, typename ObjectType>
 RefType GetRef(const ObjectType* ptr) {
-    static_assert(std::is_base_of_v<typename RefType::ContainerType, ObjectType>, "Can only cast to the ref of same container type");
+    using ContainerType = RefType::ContainerType;
+    static_assert(std::is_base_of_v<ContainerType, ObjectType>, "Can only cast to the ref of same container type");
 
     if constexpr (is_optional_type_v<RefType> || RefType::_type_is_nullable) {
         if (ptr == nullptr) {
-            return RefType(ObjectPtr<Object>(nullptr));
+            return details::ObjectUnsafe::ObjectRefFromObjectPtr<RefType>(nullptr);
         }
     } else {
         TVM_FFI_ICHECK_NOTNULL(ptr);
     }
-    return RefType(details::ObjectUnsafe::ObjectPtrFromUnowned<Object>(const_cast<Object*>(static_cast<const Object*>(ptr))));
+    return details::ObjectUnsafe::ObjectRefFromObjectPtr<RefType>(
+            details::ObjectUnsafe::ObjectPtrFromUnowned<Object>(const_cast<Object*>(static_cast<const Object*>(ptr))));
 }
 
 /*!
@@ -51,11 +53,6 @@ ObjectPtr<BaseType> GetObjectPtr(ObjectType* ptr) {
     return details::ObjectUnsafe::ObjectPtrFromUnowned<BaseType>(ptr);
 }
 }// namespace ffi
-
-// Expose to the tvm namespace
-// Rationale: convinience and no ambiguity
-using ffi::GetObjectPtr;
-using ffi::GetRef;
 }// namespace litetvm
 
 #endif//LITETVM_FFI_CAST_H

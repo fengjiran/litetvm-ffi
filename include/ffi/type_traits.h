@@ -511,7 +511,7 @@ struct TypeTraits<DLTensor*> : TypeTraitsBase {
 template<typename TObjRef>
 struct ObjectRefTypeTraitsBase : TypeTraitsBase {
     static constexpr int32_t field_static_type_index = kTVMFFIObject;
-    using ContainerType = typename TObjRef::ContainerType;
+    using ContainerType = TObjRef::ContainerType;
 
     TVM_FFI_INLINE static void CopyToAnyView(const TObjRef& src, TVMFFIAny* result) {
         if constexpr (TObjRef::_type_is_nullable) {
@@ -552,35 +552,39 @@ struct ObjectRefTypeTraitsBase : TypeTraitsBase {
 
     TVM_FFI_INLINE static TObjRef CopyFromAnyViewAfterCheck(const TVMFFIAny* src) {
         if constexpr (TObjRef::_type_is_nullable) {
-            if (src->type_index == kTVMFFINone) {
-                return TObjRef(ObjectPtr<Object>(nullptr));
+            if (src->type_index == TypeIndex::kTVMFFINone) {
+                return details::ObjectUnsafe::ObjectRefFromObjectPtr<TObjRef>(nullptr);
             }
         }
-        return TObjRef(details::ObjectUnsafe::ObjectPtrFromUnowned<Object>(src->v_obj));
+        return details::ObjectUnsafe::ObjectRefFromObjectPtr<TObjRef>(
+                details::ObjectUnsafe::ObjectPtrFromUnowned<Object>(src->v_obj));
     }
 
     TVM_FFI_INLINE static TObjRef MoveFromAnyAfterCheck(TVMFFIAny* src) {
         if constexpr (TObjRef::_type_is_nullable) {
-            if (src->type_index == kTVMFFINone) {
-                return TObjRef(ObjectPtr<Object>(nullptr));
+            if (src->type_index == TypeIndex::kTVMFFINone) {
+                return details::ObjectUnsafe::ObjectRefFromObjectPtr<TObjRef>(nullptr);
             }
         }
         // move out the object pointer
-        ObjectPtr<Object> obj_ptr = details::ObjectUnsafe::ObjectPtrFromOwned<Object>(src->v_obj);
+        ObjectPtr<ContainerType> obj_ptr =
+                details::ObjectUnsafe::ObjectPtrFromOwned<ContainerType>(src->v_obj);
         // reset the src to nullptr
         TypeTraits<std::nullptr_t>::MoveToAny(nullptr, src);
-        return TObjRef(std::move(obj_ptr));
+        return details::ObjectUnsafe::ObjectRefFromObjectPtr<TObjRef>(std::move(obj_ptr));
     }
 
     TVM_FFI_INLINE static std::optional<TObjRef> TryCastFromAnyView(const TVMFFIAny* src) {
         if constexpr (TObjRef::_type_is_nullable) {
-            if (src->type_index == kTVMFFINone) {
-                return TObjRef(ObjectPtr<Object>(nullptr));
+            if (src->type_index == TypeIndex::kTVMFFINone) {
+                return details::ObjectUnsafe::ObjectRefFromObjectPtr<TObjRef>(nullptr);
             }
         }
-        if (src->type_index >= kTVMFFIStaticObjectBegin) {
+
+        if (src->type_index >= TypeIndex::kTVMFFIStaticObjectBegin) {
             if (details::IsObjectInstance<ContainerType>(src->type_index)) {
-                return TObjRef(details::ObjectUnsafe::ObjectPtrFromUnowned<Object>(src->v_obj));
+                return details::ObjectUnsafe::ObjectRefFromObjectPtr<TObjRef>(
+                        details::ObjectUnsafe::ObjectPtrFromUnowned<ContainerType>(src->v_obj));
             }
         }
         return std::nullopt;

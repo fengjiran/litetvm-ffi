@@ -25,8 +25,24 @@ Tensor Empty(Shape shape, DLDataType dtype, DLDevice device) {
     return Tensor::FromNDAlloc(CPUNDAlloc(), std::move(shape), dtype, device);
 }
 
+int TestDLPackTensorAllocator(DLTensor* prototype, DLManagedTensorVersioned** out, void* error_ctx,
+                              void (*SetError)(void* error_ctx, const char* kind,
+                                               const char* message)) {
+    Shape shape(prototype->shape, prototype->shape + prototype->ndim);
+    Tensor nd = Empty(shape, prototype->dtype, prototype->device);
+    *out = nd.ToDLPackVersioned();
+    return 0;
+}
 
-TEST(NDArray, Basic) {
+int TestDLPackTensorAllocatorError(DLTensor* prototype, DLManagedTensorVersioned** out,
+                                   void* error_ctx,
+                                   void (*SetError)(void* error_ctx, const char* kind,
+                                                    const char* message)) {
+    SetError(error_ctx, "RuntimeError", "TestDLPackTensorAllocatorError");
+    return -1;
+}
+
+TEST(Tensor, Basic) {
     Tensor nd = Empty(Shape({1, 2, 3}), DLDataType({kDLFloat, 32, 1}), DLDevice({kDLCPU, 0}));
     Shape shape = nd.shape();
     EXPECT_EQ(shape.size(), 3);
@@ -50,7 +66,7 @@ TEST(NDArray, Basic) {
     EXPECT_EQ(nd2.use_count(), 3);
 }
 
-TEST(NDArray, DLPack) {
+TEST(Tensor, DLPack) {
     Tensor nd = Empty({1, 2, 3}, DLDataType({kDLInt, 16, 1}), DLDevice({kDLCPU, 0}));
     DLManagedTensor* dlpack = nd.ToDLPack();
     EXPECT_EQ(dlpack->dl_tensor.ndim, 3);
@@ -77,7 +93,7 @@ TEST(NDArray, DLPack) {
     EXPECT_EQ(nd.use_count(), 1);
 }
 
-TEST(NDArray, DLPackVersioned) {
+TEST(Tensor, DLPackVersioned) {
     DLDataType dtype = DLDataType({kDLFloat4_e2m1fn, 4, 1});
     EXPECT_EQ(GetDataSize(2, dtype), 2 * 4 / 8);
     Tensor nd = Empty({2}, dtype, DLDevice({kDLCPU, 0}));
@@ -103,6 +119,33 @@ TEST(NDArray, DLPackVersioned) {
         EXPECT_EQ(nd2.use_count(), 1);
     }
     EXPECT_EQ(nd.use_count(), 1);
+}
+
+TEST(Tensor, DLPackAlloc) {
+    // Test successful allocation
+    Tensor tensor = Tensor::FromDLPackAlloc(TestDLPackTensorAllocator, {1, 2, 3},
+                                            DLDataType({kDLFloat, 32, 1}), DLDevice({kDLCPU, 0}));
+    EXPECT_EQ(tensor.use_count(), 1);
+    EXPECT_EQ(tensor.shape().size(), 3);
+    EXPECT_EQ(tensor.shape()[0], 1);
+    EXPECT_EQ(tensor.shape()[1], 2);
+    EXPECT_EQ(tensor.shape()[2], 3);
+    EXPECT_EQ(tensor.dtype().code, kDLFloat);
+    EXPECT_EQ(tensor.dtype().bits, 32);
+    EXPECT_EQ(tensor.dtype().lanes, 1);
+    EXPECT_EQ(tensor->device.device_type, kDLCPU);
+    EXPECT_EQ(tensor->device.device_id, 0);
+    EXPECT_NE(tensor->data, nullptr);
+}
+
+TEST(Tensor, DLPackAllocError) {
+    // Test error handling in DLPackAlloc
+    EXPECT_THROW(
+        {
+          Tensor::FromDLPackAlloc(TestDLPackTensorAllocatorError, {1, 2, 3},
+                                  DLDataType({kDLFloat, 32, 1}), DLDevice({kDLCPU, 0}));
+        },
+        litetvm::ffi::Error);
 }
 
 }// namespace

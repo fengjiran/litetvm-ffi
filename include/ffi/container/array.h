@@ -145,9 +145,8 @@ public:
     }
 
     static constexpr int32_t _type_index = kTVMFFIArray;
-    static constexpr const char* _type_key = StaticTypeKey::kTVMFFIArray;
     static constexpr bool _type_final = true;
-    TVM_FFI_DECLARE_STATIC_OBJECT_INFO(ArrayObj, Object);
+    TVM_FFI_DECLARE_OBJECT_INFO_STATIC(StaticTypeKey::kTVMFFIArray, ArrayObj, Object);
 
 private:
     /*! \return Size of initialized memory, used by InplaceArrayBase. */
@@ -355,6 +354,11 @@ class Array : public ObjectRef {
 public:
     using value_type = T;
     // constructors
+    /*!
+   * \brief Construct an Array with UnsafeInit
+   */
+    explicit Array(UnsafeInit tag) : ObjectRef(tag) {}
+
     /*!
    * \brief default constructor
    */

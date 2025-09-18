@@ -285,11 +285,12 @@ uint64_t StructuralHash::Hash(const Any& value, bool map_free_vars, bool skip_nd
     return handler.HashAny(value);
 }
 
-TVM_FFI_STATIC_INIT_BLOCK({
+TVM_FFI_STATIC_INIT_BLOCK() {
     namespace refl = litetvm::ffi::reflection;
     refl::GlobalDef().def("ffi.StructuralHash", StructuralHash::Hash);
     refl::EnsureTypeAttrColumn("__s_hash__");
-});
+}
+
 
 }// namespace ffi
 }// namespace litetvm

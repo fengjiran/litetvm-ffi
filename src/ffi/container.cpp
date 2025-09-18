@@ -39,20 +39,7 @@ private:
     MapObj::iterator end_;
 };
 
-TVM_FFI_STATIC_INIT_BLOCK(
-        {
-            namespace refl = litetvm::ffi::reflection;
-            refl::GlobalDef().def("test0", [](int a, int b) { return a + b; });
-        });
-
-TVM_FFI_STATIC_INIT_BLOCK(
-        {
-            namespace refl = litetvm::ffi::reflection;
-            refl::GlobalDef().def("test1", [](int a, int b) { return a + b; });
-        });
-
-
-TVM_FFI_STATIC_INIT_BLOCK({
+TVM_FFI_STATIC_INIT_BLOCK() {
     namespace refl = litetvm::ffi::reflection;
     refl::GlobalDef()
             .def_packed("ffi.Array",
@@ -79,7 +66,7 @@ TVM_FFI_STATIC_INIT_BLOCK({
             .def("ffi.MapForwardIterFunctor", [](const ffi::MapObj* n) -> ffi::Function {
                 return ffi::Function::FromTyped(MapForwardIterFunctor(n->begin(), n->end()));
             });
-});
+}
 
 }// namespace ffi
 }// namespace litetvm

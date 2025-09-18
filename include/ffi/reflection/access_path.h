@@ -61,9 +61,8 @@ public:
    */
     inline bool StepEqual(const AccessStep& other) const;
 
-    static constexpr const char* _type_key = "ffi.reflection.AccessStep";
     static constexpr TVMFFISEqHashKind _type_s_eq_hash_kind = kTVMFFISEqHashKindConstTreeNode;
-    TVM_FFI_DECLARE_FINAL_OBJECT_INFO(AccessStepObj, Object);
+    TVM_FFI_DECLARE_OBJECT_INFO_FINAL("ffi.reflection.AccessStep", AccessStepObj, Object);
 };
 
 /*!
@@ -93,7 +92,7 @@ public:
         return AccessStep(AccessKind::kMapItemMissing, key);
     }
 
-    TVM_FFI_DEFINE_NOTNULLABLE_OBJECT_REF_METHODS(AccessStep, ObjectRef, AccessStepObj);
+    TVM_FFI_DEFINE_OBJECT_REF_METHODS_NOTNULLABLE(AccessStep, ObjectRef, AccessStepObj);
 };
 
 inline bool AccessStepObj::StepEqual(const AccessStep& other) const {
@@ -215,9 +214,8 @@ public:
    */
     inline bool IsPrefixOf(const AccessPath& other) const;
 
-    static constexpr const char* _type_key = "ffi.reflection.AccessPath";
     static constexpr TVMFFISEqHashKind _type_s_eq_hash_kind = kTVMFFISEqHashKindConstTreeNode;
-    TVM_FFI_DECLARE_FINAL_OBJECT_INFO(AccessPathObj, Object);
+    TVM_FFI_DECLARE_OBJECT_INFO_FINAL("ffi.reflection.AccessPath", AccessPathObj, Object);
 
 private:
     static bool PathEqual(const AccessPathObj* lhs, const AccessPathObj* rhs) {
@@ -285,7 +283,11 @@ public:
         return AccessPath(make_object<AccessPathObj>(std::nullopt, std::nullopt, 0));
     }
 
-    TVM_FFI_DEFINE_NOTNULLABLE_OBJECT_REF_METHODS(AccessPath, ObjectRef, AccessPathObj);
+    TVM_FFI_DEFINE_OBJECT_REF_METHODS_NOTNULLABLE(AccessPath, ObjectRef, AccessPathObj);
+
+private:
+    friend class AccessPathObj;
+    explicit AccessPath(ObjectPtr<AccessPathObj> ptr) : ObjectRef(ptr) {}
 };
 
 using AccessPathPair = Tuple<AccessPath, AccessPath>;

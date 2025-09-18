@@ -230,8 +230,7 @@ public:
     MyIntPairObj(int64_t a, int64_t b) : a(a), b(b) {}
 
     // Required: declare type information
-    static constexpr const char* _type_key = "example.MyIntPair";
-    TVM_FFI_DECLARE_FINAL_OBJECT_INFO(MyIntPairObj, litetvm::ffi::Object);
+    TVM_FFI_DECLARE_OBJECT_INFO_FINAL("example.MyIntPair", MyIntPairObj, litetvm::ffi::Object);
 };
 
 // Step 2: Define the reference wrapper (user-facing interface)
@@ -241,7 +240,7 @@ public:
     explicit MyIntPair(int64_t a, int64_t b) { data_ = litetvm::ffi::make_object<MyIntPairObj>(a, b); }
 
     // Required: define object reference methods
-    TVM_FFI_DEFINE_OBJECT_REF_METHODS(MyIntPair, litetvm::ffi::ObjectRef, MyIntPairObj);
+    TVM_FFI_DEFINE_OBJECT_REF_METHODS_NULLABLE(MyIntPair, litetvm::ffi::ObjectRef, MyIntPairObj);
 };
 
 void ExampleObjectPtr() {

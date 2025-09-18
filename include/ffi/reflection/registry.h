@@ -115,6 +115,15 @@ protected:
     }
 
     template<typename T>
+    static int ObjectCreatorUnsafeInit(TVMFFIObjectHandle* result) {
+        TVM_FFI_SAFE_CALL_BEGIN();
+        ObjectPtr<T> obj = make_object<T>(UnsafeInit{});
+        *result = details::ObjectUnsafe::MoveObjectPtrToTVMFFIObjectPtr(std::move(obj));
+        TVM_FFI_SAFE_CALL_END();
+    }
+
+
+    template<typename T>
     TVM_FFI_INLINE static void ApplyFieldInfoTrait(TVMFFIFieldInfo* info, const T& value) {
         if constexpr (std::is_base_of_v<FieldInfoTrait, std::decay_t<T>>) {
             value.Apply(info);
@@ -352,6 +361,8 @@ private:
         info.doc = TVMFFIByteArray{nullptr, 0};
         if constexpr (std::is_default_constructible_v<Class>) {
             info.creator = ObjectCreatorDefault<Class>;
+        } else if constexpr (std::is_constructible_v<Class, UnsafeInit>) {
+            info.creator = ObjectCreatorUnsafeInit<Class>;
         }
         // apply extra info traits
         (ApplyExtraInfoTrait(&info, std::forward<ExtraArgs>(extra_args)), ...);

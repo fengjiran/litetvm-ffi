@@ -21,22 +21,17 @@ struct TestObjA : Object {
     int64_t x;
     int64_t y;
 
-    static constexpr const char* _type_key = "test.TestObjA";
     static constexpr bool _type_mutable = true;
-    TVM_FFI_DECLARE_BASE_OBJECT_INFO(TestObjA, Object);
+    TVM_FFI_DECLARE_OBJECT_INFO("test.TestObjA", TestObjA, Object);
 };
 
 struct TestObjADerived : TestObjA {
     int64_t z;
 
-    static constexpr const char* _type_key = "test.TestObjADerived";
-    // TVM_FFI_DECLARE_FINAL_OBJECT_INFO(TestObjADerived, TestObjA);
-    static constexpr int _type_child_slots = 0;
-    // static constexpr bool _type_final = true;
-    TVM_FFI_DECLARE_BASE_OBJECT_INFO(TestObjADerived, TestObjA);
+    TVM_FFI_DECLARE_OBJECT_INFO_FINAL("test.TestObjADerived", TestObjADerived, TestObjA);
 };
 
-TVM_FFI_STATIC_INIT_BLOCK({
+TVM_FFI_STATIC_INIT_BLOCK() {
     namespace refl = litetvm::ffi::reflection;
 
     TIntObj::RegisterReflection();
@@ -48,7 +43,7 @@ TVM_FFI_STATIC_INIT_BLOCK({
 
     refl::ObjectDef<TestObjA>().def_ro("x", &TestObjA::x).def_rw("y", &TestObjA::y);
     refl::ObjectDef<TestObjADerived>().def_ro("z", &TestObjADerived::z);
-});
+}
 
 TEST(Reflection, GetFieldByteOffset) {
     EXPECT_EQ(details::ObjectUnsafe::GetObjectOffsetToSubclass<TNumberObj>(), 32);
@@ -138,10 +133,10 @@ TEST(Reflection, TypeAttrColumn) {
     EXPECT_EQ((size_t) size_attr[TIntObj::_type_index].cast<int>(), sizeof(TIntObj));
 }
 
-TVM_FFI_STATIC_INIT_BLOCK({
+TVM_FFI_STATIC_INIT_BLOCK() {
     namespace refl = litetvm::ffi::reflection;
     refl::GlobalDef().def_method("testing.Int_GetValue", &TIntObj::GetValue);
-});
+}
 
 TEST(Reflection, FuncRegister) {
     Function fget_value = Function::GetGlobalRequired("testing.Int_GetValue");

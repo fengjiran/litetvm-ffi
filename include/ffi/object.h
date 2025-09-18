@@ -20,6 +20,24 @@ using TypeIndex = TVMFFITypeIndex;
 using TypeInfo = TVMFFITypeInfo;
 
 /*!
+ * \brief Helper tag to explicitly request unsafe initialization.
+ *
+ * Constructing an ObjectRefType with UnsafeInit{} will set the data_ member to nullptr.
+ *
+ * When initializing Object fields, ObjectRef fields can be set to UnsafeInit.
+ * This enables the "construct with UnsafeInit then set all fields" pattern
+ * when the object does not have a default constructor.
+ *
+ * Used for initialization in controlled scenarios where such unsafe
+ * initialization is known to be safe.
+ *
+ * Each ObjectRefType should have a constructor that takes an UnsafeInit tag.
+ *
+ * \note As the name suggests, do not use it in normal code paths.
+ */
+struct UnsafeInit {};
+
+/*!
  * \brief Known type keys for pre-defined types.
  */
 struct StaticTypeKey {
@@ -39,7 +57,7 @@ struct StaticTypeKey {
     static constexpr const char* kTVMFFIBytes = "ffi.Bytes";
     static constexpr const char* kTVMFFIStr = "ffi.String";
     static constexpr const char* kTVMFFIShape = "ffi.Shape";
-    static constexpr const char* kTVMFFINDArray = "ffi.NDArray";
+    static constexpr const char* kTVMFFITensor = "ffi.Tensor";
     static constexpr const char* kTVMFFIObject = "ffi.Object";
     static constexpr const char* kTVMFFIFunction = "ffi.Function";
     static constexpr const char* kTVMFFIArray = "ffi.Array";
@@ -207,7 +225,8 @@ public:
     static constexpr TVMFFISEqHashKind _type_s_eq_hash_kind = kTVMFFISEqHashKindUnsupported;
 
     // The following functions are provided by macro
-    // TVM_FFI_DECLARE_BASE_OBJECT_INFO and TVM_DECLARE_FINAL_OBJECT_INFO
+    // TVM_FFI_DECLARE_OBJECT_INFO and TVM_FFI_DECLARE_OBJECT_INFO_FINAL
+
     /*!
    * \brief Get the runtime allocated type index of the type
    * \note Getting this information may need dynamic calls into a global table.
@@ -693,6 +712,8 @@ public:
     ObjectRef& operator=(ObjectRef&& other) = default;
     /*! \brief Constructor from existing object ptr */
     explicit ObjectRef(ObjectPtr<Object> data) : data_(std::move(data)) {}
+    /*! \brief Constructor from UnsafeInit */
+    explicit ObjectRef(UnsafeInit) : data_(nullptr) {}
 
     /*!
    * \brief Comparator
@@ -792,7 +813,9 @@ public:
     TVM_FFI_INLINE std::optional<ObjectRefType> as() const {
         if (data_ != nullptr) {
             if (data_->IsInstance<typename ObjectRefType::ContainerType>()) {
-                return ObjectRefType(data_);
+                ObjectRefType ref(UnsafeInit{});
+                ref.data_ = data_;
+                return ref;
             }
             return std::nullopt;
         }
@@ -886,20 +909,25 @@ struct ObjectPtrEqual {
     static inline int32_t _register_type_index = _GetOrAllocRuntimeTypeIndex()
 
 /*!
- * \brief Helper macro to declare a object that comes with static type index.
+ * \brief Helper macro to declare object information with static type index.
+ *
+ * \param TypeKey The type key of the current type.
  * \param TypeName The name of the current type.
  * \param ParentType The name of the ParentType
  */
-#define TVM_FFI_DECLARE_STATIC_OBJECT_INFO(TypeName, ParentType)        \
-    static int32_t RuntimeTypeIndex() { return TypeName::_type_index; } \
+#define TVM_FFI_DECLARE_OBJECT_INFO_STATIC(TypeKey, TypeName, ParentType) \
+    static constexpr const char* _type_key = TypeKey;                     \
+    static int32_t RuntimeTypeIndex() { return TypeName::_type_index; }   \
     TVM_FFI_REGISTER_STATIC_TYPE_INFO(TypeName, ParentType)
 
+
 /*!
- * \brief helper macro to declare a base object type that can be inherited.
+ * \brief Helper macro to declare object information with type key already defined in class.
+ *
  * \param TypeName The name of the current type.
  * \param ParentType The name of the ParentType
  */
-#define TVM_FFI_DECLARE_BASE_OBJECT_INFO(TypeName, ParentType)                                              \
+#define TVM_FFI_DECLARE_OBJECT_INFO_PREDEFINED_TYPE_KEY(TypeName, ParentType)                               \
     static constexpr int32_t _type_depth = ParentType::_type_depth + 1;                                     \
     static int32_t _GetOrAllocRuntimeTypeIndex() {                                                          \
         static_assert(!ParentType::_type_final, "ParentType marked as final");                              \
@@ -916,14 +944,27 @@ struct ObjectPtrEqual {
     static inline int32_t _type_index = _GetOrAllocRuntimeTypeIndex()
 
 /*!
- * \brief helper macro to declare type information in a final class.
+ * \brief Helper macro to declare object information with dynamic type index.
+ *
+ * \param TypeKey The type key of the current type.
  * \param TypeName The name of the current type.
  * \param ParentType The name of the ParentType
  */
-#define TVM_FFI_DECLARE_FINAL_OBJECT_INFO(TypeName, ParentType) \
-    static constexpr int _type_child_slots = 0;                 \
-    static constexpr bool _type_final = true;                   \
-    TVM_FFI_DECLARE_BASE_OBJECT_INFO(TypeName, ParentType)
+#define TVM_FFI_DECLARE_OBJECT_INFO(TypeKey, TypeName, ParentType) \
+    static constexpr const char* _type_key = TypeKey;              \
+    TVM_FFI_DECLARE_OBJECT_INFO_PREDEFINED_TYPE_KEY(TypeName, ParentType)
+
+/*!
+ * \brief Helper macro to declare object information with dynamic type index and is final.
+ *
+ * \param TypeKey The type key of the current type.
+ * \param TypeName The name of the current type.
+ * \param ParentType The name of the ParentType
+ */
+#define TVM_FFI_DECLARE_OBJECT_INFO_FINAL(TypeKey, TypeName, ParentType) \
+    static const constexpr int _type_child_slots [[maybe_unused]] = 0;   \
+    static const constexpr bool _type_final [[maybe_unused]] = true;     \
+    TVM_FFI_DECLARE_OBJECT_INFO(TypeKey, TypeName, ParentType)
 
 /*
  * \brief Define object reference methods.
@@ -935,12 +976,15 @@ struct ObjectPtrEqual {
  * \note This macro also defines the default constructor that puts the ObjectRef
  *       in undefined state initially.
  */
-#define TVM_FFI_DEFINE_OBJECT_REF_METHODS(TypeName, ParentType, ObjectName)                              \
-    TypeName() = default;                                                                                \
-    explicit TypeName(::litetvm::ffi::ObjectPtr<::litetvm::ffi::Object> n) : ParentType(std::move(n)) {} \
-    TVM_FFI_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName)                                                \
-    const ObjectName* operator->() const { return static_cast<const ObjectName*>(data_.get()); }         \
-    const ObjectName* get() const { return operator->(); }                                               \
+#define TVM_FFI_DEFINE_OBJECT_REF_METHODS_NULLABLE(TypeName, ParentType, ObjectName)                 \
+    TypeName() = default;                                                                            \
+    explicit TypeName(::litetvm::ffi::ObjectPtr<ObjectName> n) : ParentType(n) {}                    \
+    explicit TypeName(::litetvm::ffi::UnsafeInit tag) : ParentType(tag) {}                           \
+    TVM_FFI_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName)                                            \
+    using __PtrType = std::conditional_t<ObjectName::_type_mutable, ObjectName*, const ObjectName*>; \
+    __PtrType operator->() const { return static_cast<__PtrType>(data_.get()); }                     \
+    __PtrType get() const { return static_cast<__PtrType>(data_.get()); }                            \
+    static constexpr bool _type_is_nullable = true;                                                  \
     using ContainerType = ObjectName
 
 /*
@@ -950,45 +994,17 @@ struct ObjectPtrEqual {
  * \param ParentType The parent type of the objectref
  * \param ObjectName The type name of the object.
  */
-#define TVM_FFI_DEFINE_NOTNULLABLE_OBJECT_REF_METHODS(TypeName, ParentType, ObjectName)                  \
-    explicit TypeName(::litetvm::ffi::ObjectPtr<::litetvm::ffi::Object> n) : ParentType(std::move(n)) {} \
-    TVM_FFI_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName)                                                \
-    const ObjectName* operator->() const { return static_cast<const ObjectName*>(data_.get()); }         \
-    const ObjectName* get() const { return operator->(); }                                               \
-    static constexpr bool _type_is_nullable = false;                                                     \
-    using ContainerType = ObjectName
-
-/*
- * \brief Define object reference methods of whose content is mutable.
- * \param TypeName The object type name
- * \param ParentType The parent type of the objectref
- * \param ObjectName The type name of the object.
- * \note We recommend making objects immutable when possible.
- *       This macro is only reserved for objects that stores runtime states.
- */
-#define TVM_FFI_DEFINE_MUTABLE_OBJECT_REF_METHODS(TypeName, ParentType, ObjectName)                              \
-    TypeName() = default;                                                                                        \
-    TVM_FFI_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName)                                                        \
-    explicit TypeName(::litetvm::runtime::ObjectPtr<::litetvm::runtime::Object> n) : ParentType(std::move(n)) {} \
-    ObjectName* operator->() const { return static_cast<ObjectName*>(data_.get()); }                             \
-    using ContainerType = ObjectName
-
-/*
- * \brief Define object reference methods that is both not nullable and mutable.
- *
- * \param TypeName The object type name
- * \param ParentType The parent type of the objectref
- * \param ObjectName The type name of the object.
- */
-#define TVM_FFI_DEFINE_MUTABLE_NOTNULLABLE_OBJECT_REF_METHODS(TypeName, ParentType, ObjectName)          \
-    explicit TypeName(::litetvm::ffi::ObjectPtr<::litetvm::ffi::Object> n) : ParentType(std::move(n)) {} \
-    TVM_FFI_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName)                                                \
-    ObjectName* operator->() const { return static_cast<ObjectName*>(data_.get()); }                     \
-    ObjectName* get() const { return operator->(); }                                                     \
-    static constexpr bool _type_is_nullable = false;                                                     \
+#define TVM_FFI_DEFINE_OBJECT_REF_METHODS_NOTNULLABLE(TypeName, ParentType, ObjectName)              \
+    explicit TypeName(::litetvm::ffi::UnsafeInit tag) : ParentType(tag) {}                           \
+    TVM_FFI_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName)                                            \
+    using __PtrType = std::conditional_t<ObjectName::_type_mutable, ObjectName*, const ObjectName*>; \
+    __PtrType operator->() const { return static_cast<__PtrType>(data_.get()); }                     \
+    __PtrType get() const { return static_cast<__PtrType>(data_.get()); }                            \
+    static constexpr bool _type_is_nullable = false;                                                 \
     using ContainerType = ObjectName
 
 namespace details {
+
 template<typename TargetType>
 TVM_FFI_INLINE bool IsObjectInstance(int32_t object_type_index) {
     static_assert(std::is_base_of_v<Object, TargetType>);
@@ -1048,6 +1064,20 @@ struct ObjectUnsafe {
     }
 
     template<typename T>
+    TVM_FFI_INLINE static T ObjectRefFromObjectPtr(const ObjectPtr<Object>& ptr) {
+        T ref(UnsafeInit{});
+        ref.data_ = ptr;
+        return ref;
+    }
+
+    template<typename T>
+    TVM_FFI_INLINE static T ObjectRefFromObjectPtr(ObjectPtr<Object>&& ptr) {
+        T ref(UnsafeInit{});
+        ref.data_ = std::move(ptr);
+        return ref;
+    }
+
+    template<typename T>
     TVM_FFI_INLINE static ObjectPtr<T> ObjectPtrFromObjectRef(const ObjectRef& ref) {
         if constexpr (std::is_same_v<T, Object>) {
             return ref.data_;
@@ -1061,7 +1091,10 @@ struct ObjectUnsafe {
         if constexpr (std::is_same_v<T, Object>) {
             return std::move(ref.data_);
         } else {
-            return ffi::ObjectPtr<T>(std::move(ref.data_.data_));
+            ObjectPtr<T> result;
+            result.data_ = std::move(ref.data_.data_);
+            ref.data_.data_ = nullptr;
+            return result;
         }
     }
 

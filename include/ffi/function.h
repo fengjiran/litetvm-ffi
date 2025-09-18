@@ -77,9 +77,7 @@ public:
     }
 
     static constexpr uint32_t _type_index = kTVMFFIFunction;
-    static constexpr const char* _type_key = StaticTypeKey::kTVMFFIFunction;
-
-    TVM_FFI_DECLARE_STATIC_OBJECT_INFO(FunctionObj, Object);
+    TVM_FFI_DECLARE_OBJECT_INFO_STATIC(StaticTypeKey::kTVMFFIFunction, FunctionObj, Object);
 
 protected:
     /*! \brief Make default constructor protected. */
@@ -370,7 +368,8 @@ public:
         TVMFFIByteArray name_arr{name.data(), name.size()};
         TVM_FFI_CHECK_SAFE_CALL(TVMFFIFunctionGetGlobal(&name_arr, &handle));
         if (handle != nullptr) {
-            return Function(details::ObjectUnsafe::ObjectPtrFromOwned<Object>(static_cast<Object*>(handle)));
+            return Function(
+                    details::ObjectUnsafe::ObjectPtrFromOwned<FunctionObj>(static_cast<Object*>(handle)));
         }
         return std::nullopt;
     }
@@ -531,7 +530,7 @@ public:
         return data_ != nullptr;
     }
 
-    TVM_FFI_DEFINE_OBJECT_REF_METHODS(Function, ObjectRef, FunctionObj);
+    TVM_FFI_DEFINE_OBJECT_REF_METHODS_NULLABLE(Function, ObjectRef, FunctionObj);
 
     // class Registry;
 
@@ -802,15 +801,9 @@ inline int32_t TypeKeyToIndex(std::string_view type_key) {
  *   return x - 1;
  * });
  *
- * // The following code will cause compilation error.
- * // Because the same Function and ExportName
- * // TVM_FFI_DLL_EXPORT_TYPED_FUNC(AddOne_, AddOne_);
- *
- * // The following code is OK, assuming the macro
- * // is in a different namespace from xyz
- * // TVM_FFI_DLL_EXPORT_TYPED_FUNC(AddOne_, xyz::AddOne_);
- *
  * \endcode
+ *
+ * \note The final symbol name is `__tvm_ffi_<ExportName>`.
  */
 #define TVM_FFI_DLL_EXPORT_TYPED_FUNC(ExportName, Function)                                      \
     extern "C" {                                                                                 \

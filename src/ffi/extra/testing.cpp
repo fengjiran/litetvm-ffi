@@ -24,8 +24,7 @@ public:
     TestIntPairObj(int64_t a, int64_t b) : a(a), b(b) {}
 
     // Required: declare type information
-    static constexpr const char* _type_key = "testing.TestIntPair";
-    TVM_FFI_DECLARE_FINAL_OBJECT_INFO(TestIntPairObj, litetvm::ffi::Object);
+    TVM_FFI_DECLARE_OBJECT_INFO_FINAL("testing.TestIntPair", TestIntPairObj, litetvm::ffi::Object);
 };
 
 // Step 2: Define the reference wrapper (user-facing interface)
@@ -37,17 +36,17 @@ public:
     }
 
     // Required: define object reference methods
-    TVM_FFI_DEFINE_OBJECT_REF_METHODS(TestIntPair, litetvm::ffi::ObjectRef, TestIntPairObj);
+    TVM_FFI_DEFINE_OBJECT_REF_METHODS_NULLABLE(TestIntPair, litetvm::ffi::ObjectRef, TestIntPairObj);
 };
 
-TVM_FFI_STATIC_INIT_BLOCK({
+TVM_FFI_STATIC_INIT_BLOCK() {
     namespace refl = litetvm::ffi::reflection;
     refl::ObjectDef<TestIntPairObj>()
             .def_ro("a", &TestIntPairObj::a)
             .def_ro("b", &TestIntPairObj::b)
             .def_static("__create__",
                         [](int64_t a, int64_t b) -> TestIntPair { return TestIntPair(a, b); });
-});
+}
 
 class TestObjectBase : public Object {
 public:
@@ -60,8 +59,7 @@ public:
     // declare as one slot, with float as overflow
     static constexpr bool _type_mutable = true;
     static constexpr uint32_t _type_child_slots = 1;
-    static constexpr const char* _type_key = "testing.TestObjectBase";
-    TVM_FFI_DECLARE_BASE_OBJECT_INFO(TestObjectBase, Object);
+    TVM_FFI_DECLARE_OBJECT_INFO("testing.TestObjectBase", TestObjectBase, Object);
 };
 
 class TestObjectDerived : public TestObjectBase {
@@ -70,8 +68,7 @@ public:
     Array<Any> v_array;
 
     // declare as one slot, with float as overflow
-    static constexpr const char* _type_key = "testing.TestObjectDerived";
-    TVM_FFI_DECLARE_FINAL_OBJECT_INFO(TestObjectDerived, TestObjectBase);
+    TVM_FFI_DECLARE_OBJECT_INFO_FINAL("testing.TestObjectDerived", TestObjectDerived, TestObjectBase);
 };
 
 void TestRaiseError(String kind, String msg) {
@@ -81,7 +78,7 @@ void TestRaiseError(String kind, String msg) {
 void TestApply(Function f, PackedArgs args, Any* ret) { f.CallPacked(args, ret); }
 
 
-TVM_FFI_STATIC_INIT_BLOCK({
+TVM_FFI_STATIC_INIT_BLOCK() {
     namespace refl = litetvm::ffi::reflection;
 
     refl::ObjectDef<TestObjectBase>()
@@ -96,13 +93,9 @@ TVM_FFI_STATIC_INIT_BLOCK({
 
     refl::GlobalDef()
             .def("testing.test_raise_error", TestRaiseError)
-            .def_packed("testing.nop", [](PackedArgs args, Any* ret) { *ret = args[0]; })
+            .def_packed("testing.nop", [](PackedArgs args, Any* ret) {})
             .def_packed("testing.echo", [](PackedArgs args, Any* ret) { *ret = args[0]; })
-            .def_packed("testing.apply",
-                        [](PackedArgs args, Any* ret) {
-                            auto f = args[0].cast<Function>();
-                            TestApply(f, args.Slice(1), ret);
-                        })
+            .def_packed("testing.apply", TestApply)
             .def("testing.run_check_signal",
                  [](int nsec) {
                      for (int i = 0; i < nsec; ++i) {
@@ -114,7 +107,7 @@ TVM_FFI_STATIC_INIT_BLOCK({
                      std::cout << "Function finished without catching signal" << std::endl;
                  })
             .def("testing.object_use_count", [](const Object* obj) { return obj->use_count(); });
-});
+}
 
 }// namespace ffi
 }// namespace litetvm

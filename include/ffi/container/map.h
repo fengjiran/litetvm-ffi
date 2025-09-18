@@ -49,9 +49,8 @@ public:
     static_assert(sizeof(KVType) == 32, "sizeof(KVType) incorrect");
 
     static constexpr int32_t _type_index = TypeIndex::kTVMFFIMap;
-    static constexpr const char* _type_key = StaticTypeKey::kTVMFFIMap;
     static constexpr bool _type_final = true;
-    TVM_FFI_DECLARE_STATIC_OBJECT_INFO(MapObj, Object);
+    TVM_FFI_DECLARE_OBJECT_INFO_STATIC(StaticTypeKey::kTVMFFIMap, MapObj, Object);
 
     /*!
    * \brief Number of elements in the SmallMapObj
@@ -1351,6 +1350,11 @@ public:
     using mapped_type = V;
     class iterator;
     /*!
+   * \brief Construct an Map with UnsafeInit
+   */
+    explicit Map(UnsafeInit tag) : ObjectRef(tag) {}
+
+    /*!
    * \brief default constructor
    */
     Map() { data_ = MapObj::Empty(); }
@@ -1681,10 +1685,6 @@ inline constexpr bool type_contains_v<Map<K, V>, Map<KU, VU>> =
         type_contains_v<K, KU> && type_contains_v<V, VU>;
 }// namespace details
 }// namespace ffi
-
-// Expose to the tvm namespace
-// Rationale: convinience and no ambiguity
-using ffi::Map;
 }// namespace litetvm
 
 

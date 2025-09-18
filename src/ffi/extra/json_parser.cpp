@@ -279,7 +279,7 @@ private:
             uint64_t from;
             double to;
         } u;
-        u.from = 0x7FF0000000000000ULL;  // write "from", read "to"
+        u.from = 0x7FF0000000000000ULL;// write "from", read "to"
         return u.to;
 #else
         return std::numeric_limits<double>::infinity();
@@ -292,7 +292,7 @@ private:
             uint64_t from;
             double to;
         } u;
-        u.from = 0xFFF0000000000000ULL;  // write "from", read "to"
+        u.from = 0xFFF0000000000000ULL;// write "from", read "to"
         return u.to;
 #else
         return -std::numeric_limits<double>::infinity();
@@ -305,7 +305,7 @@ private:
             uint64_t from;
             double to;
         } u;
-        u.from = 0x7FF8000000000000ULL;  // write "from", read "to"
+        u.from = 0x7FF8000000000000ULL;// write "from", read "to"
         return u.to;
 #else
         return std::numeric_limits<double>::quiet_NaN();
@@ -696,11 +696,11 @@ json::Value Parse(const String& json_str, String* error_msg) {
     return JSONParser::Parse(json_str, error_msg);
 }
 
-TVM_FFI_STATIC_INIT_BLOCK({
+TVM_FFI_STATIC_INIT_BLOCK() {
     namespace refl = litetvm::ffi::reflection;
     refl::GlobalDef().def("ffi.json.Parse",
                           [](const String& json_str) { return json::Parse(json_str); });
-});
+}
 
 }// namespace json
 }// namespace ffi

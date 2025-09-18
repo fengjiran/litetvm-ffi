@@ -176,7 +176,8 @@ TVM_FFI_INLINE static Error MoveFromSafeCallRaised() {
     TVMFFIObjectHandle handle;
     TVMFFIErrorMoveFromRaised(&handle);
     // handle is owned by caller
-    return Error(ObjectUnsafe::ObjectPtrFromOwned<Object>(static_cast<TVMFFIObject*>(handle)));
+    return ObjectUnsafe::ObjectRefFromObjectPtr<Error>(
+            ObjectUnsafe::ObjectPtrFromOwned<Object>(static_cast<TVMFFIObject*>(handle)));
 }
 
 /*!

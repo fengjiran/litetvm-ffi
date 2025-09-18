@@ -197,10 +197,6 @@ ObjectPtr<ArrayType> make_inplace_array_object(size_t num_elems, Args&&... args)
 }
 
 }// namespace ffi
-
-// Export the make_object function
-// rationale: ease of use, and no ambiguity
-using ffi::make_object;
 }// namespace litetvm
 
 #endif//LITETVM_FFI_MEMORY_H

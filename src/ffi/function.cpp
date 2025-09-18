@@ -180,7 +180,7 @@ int TVMFFIFunctionCall(TVMFFIObjectHandle func, TVMFFIAny* args, int32_t num_arg
     return static_cast<FunctionObj*>(func)->safe_call(func, args, num_args, result);
 }
 
-TVM_FFI_STATIC_INIT_BLOCK({
+TVM_FFI_STATIC_INIT_BLOCK() {
     namespace refl = litetvm::ffi::reflection;
     refl::GlobalDef()
             .def("ffi.FunctionRemoveGlobal",
@@ -188,7 +188,7 @@ TVM_FFI_STATIC_INIT_BLOCK({
                      return litetvm::ffi::GlobalFunctionTable::Global()->Remove(name);
                  })
             .def("ffi.FunctionListGlobalNamesFunctor",
-                 [] {
+                 []() {
                      // NOTE: we return functor instead of array
                      // so list global function names do not need to depend on array
                      // this is because list global function names usually is a core api that happens
@@ -198,11 +198,12 @@ TVM_FFI_STATIC_INIT_BLOCK({
                      auto return_functor = [names](int64_t i) -> litetvm::ffi::Any {
                          if (i < 0) {
                              return names.size();
+                         } else {
+                             return names[i];
                          }
-                         return names[i];
                      };
                      return litetvm::ffi::Function::FromTyped(return_functor);
                  })
             .def("ffi.String", [](litetvm::ffi::String val) -> litetvm::ffi::String { return val; })
             .def("ffi.Bytes", [](litetvm::ffi::Bytes val) -> litetvm::ffi::Bytes { return val; });
-});
+}

@@ -2,8 +2,8 @@
 // Created by richard on 5/15/25.
 //
 
-#include "ffi/c_api.h"
 #include "ffi/container/tensor.h"
+#include "ffi/c_api.h"
 #include "ffi/function.h"
 #include "ffi/reflection/registry.h"
 
@@ -11,7 +11,7 @@ namespace litetvm {
 namespace ffi {
 
 // Shape
-TVM_FFI_STATIC_INIT_BLOCK({
+TVM_FFI_STATIC_INIT_BLOCK() {
     namespace refl = litetvm::ffi::reflection;
     refl::GlobalDef().def_packed("ffi.Shape", [](ffi::PackedArgs args, Any* ret) {
         int64_t* mutable_data;
@@ -23,14 +23,14 @@ TVM_FFI_STATIC_INIT_BLOCK({
                 TVM_FFI_THROW(ValueError) << "Expect shape to take list of int arguments";
             }
         }
-        *ret = Shape(shape);
+        *ret = details::ObjectUnsafe::ObjectRefFromObjectPtr<Shape>(shape);
     });
-});
+}
 }// namespace ffi
 }// namespace litetvm
 
-int TVMFFINDArrayFromDLPack(DLManagedTensor* from, int32_t min_alignment,
-                            int32_t require_contiguous, TVMFFIObjectHandle* out) {
+int TVMFFITensorFromDLPack(DLManagedTensor* from, int32_t min_alignment,
+                           int32_t require_contiguous, TVMFFIObjectHandle* out) {
     using namespace litetvm::ffi;
     TVM_FFI_SAFE_CALL_BEGIN();
     Tensor nd = Tensor::FromDLPack(from, static_cast<size_t>(min_alignment), require_contiguous);
@@ -38,8 +38,8 @@ int TVMFFINDArrayFromDLPack(DLManagedTensor* from, int32_t min_alignment,
     TVM_FFI_SAFE_CALL_END();
 }
 
-int TVMFFINDArrayFromDLPackVersioned(DLManagedTensorVersioned* from, int32_t min_alignment,
-                                     int32_t require_contiguous, TVMFFIObjectHandle* out) {
+int TVMFFITensorFromDLPackVersioned(DLManagedTensorVersioned* from, int32_t min_alignment,
+                                    int32_t require_contiguous, TVMFFIObjectHandle* out) {
     using namespace litetvm::ffi;
     TVM_FFI_SAFE_CALL_BEGIN();
     Tensor nd = Tensor::FromDLPackVersioned(from, static_cast<size_t>(min_alignment), require_contiguous);
@@ -47,7 +47,7 @@ int TVMFFINDArrayFromDLPackVersioned(DLManagedTensorVersioned* from, int32_t min
     TVM_FFI_SAFE_CALL_END();
 }
 
-int TVMFFINDArrayToDLPack(TVMFFIObjectHandle from, DLManagedTensor** out) {
+int TVMFFITensorToDLPack(TVMFFIObjectHandle from, DLManagedTensor** out) {
     using namespace litetvm::ffi;
     TVM_FFI_SAFE_CALL_BEGIN();
     *out = details::ObjectUnsafe::RawObjectPtrFromUnowned<TensorObj>(static_cast<TVMFFIObject*>(from))
@@ -55,7 +55,7 @@ int TVMFFINDArrayToDLPack(TVMFFIObjectHandle from, DLManagedTensor** out) {
     TVM_FFI_SAFE_CALL_END();
 }
 
-int TVMFFINDArrayToDLPackVersioned(TVMFFIObjectHandle from, DLManagedTensorVersioned** out) {
+int TVMFFITensorToDLPackVersioned(TVMFFIObjectHandle from, DLManagedTensorVersioned** out) {
     using namespace litetvm::ffi;
     TVM_FFI_SAFE_CALL_BEGIN();
     *out = details::ObjectUnsafe::RawObjectPtrFromUnowned<TensorObj>(static_cast<TVMFFIObject*>(from))

@@ -49,13 +49,26 @@ public:
     explicit SystemLibrary(const String& symbol_prefix) : symbol_prefix_(symbol_prefix) {}
 
 
-    void* GetSymbol(const String& name) final {
+    void* GetSymbol(const String& name) {
+        // The `name` might or might not already contain the symbol prefix.
+        // Therefore, we check both with and without the prefix.
         String name_with_prefix = symbol_prefix_ + name;
+        void* symbol = reg_->GetSymbol(name_with_prefix);
+        if (symbol != nullptr) {
+            return symbol;
+        }
         return reg_->GetSymbol(name_with_prefix);
     }
 
-    void* GetSymbolWithSymbolPrefix(const String& name) final {
+    void* GetSymbolWithSymbolPrefix(const String& name) {
+        // The `name` might or might not already contain the symbol prefix.
+        // Therefore, we check both with and without the prefix.
         String name_with_prefix = symbol::tvm_ffi_symbol_prefix + symbol_prefix_ + name;
+        void* symbol = reg_->GetSymbol(name_with_prefix);
+        if (symbol != nullptr) {
+            return symbol;
+        }
+        name_with_prefix = symbol::tvm_ffi_symbol_prefix + name;
         return reg_->GetSymbol(name_with_prefix);
     }
 
@@ -92,7 +105,7 @@ private:
     Map<String, ffi::Module> lib_map_;
 };
 
-TVM_FFI_STATIC_INIT_BLOCK({
+TVM_FFI_STATIC_INIT_BLOCK() {
     namespace refl = litetvm::ffi::reflection;
     refl::GlobalDef().def_packed("ffi.SystemLib", [](ffi::PackedArgs args, ffi::Any* rv) {
         String symbol_prefix = "";
@@ -101,7 +114,7 @@ TVM_FFI_STATIC_INIT_BLOCK({
         }
         *rv = SystemLibModuleRegistry::Global()->GetOrCreateModule(symbol_prefix);
     });
-});
+}
 }// namespace ffi
 }// namespace litetvm
 

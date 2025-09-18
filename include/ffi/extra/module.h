@@ -130,9 +130,9 @@ public:
     struct InternalUnsafe;
 
     static constexpr const int32_t _type_index = TypeIndex::kTVMFFIModule;
-    static constexpr const char* _type_key = StaticTypeKey::kTVMFFIModule;
+    static constexpr const bool _type_mutable = true;
     static const constexpr bool _type_final = true;
-    TVM_FFI_DECLARE_STATIC_OBJECT_INFO(ModuleObj, Object);
+    TVM_FFI_DECLARE_OBJECT_INFO_STATIC(StaticTypeKey::kTVMFFIModule, ModuleObj, Object);
 
 protected:
     friend struct InternalUnsafe;
@@ -152,6 +152,16 @@ private:
 
 /*!
  * \brief Reference to module object.
+ *
+ * When invoking a function on a ModuleObj, such as GetFunction,
+ * use operator-> to get the ModuleObj pointer and invoke the member functions.
+ *
+ * \code
+ * ffi::Module mod = ffi::Module::LoadFromFile("path/to/module.so");
+ * ffi::Function func = mod->GetFunction(name);
+ * \endcode
+ *
+ * \sa ModuleObj which contains most of the function implementations.
  */
 class Module : public ObjectRef {
 public:
@@ -188,6 +198,12 @@ public:
     };
 
     /*!
+   * \brief Constructor from ObjectPtr<ModuleObj>.
+   * \param ptr The object pointer.
+   */
+    explicit Module(ObjectPtr<ModuleObj> ptr) : ObjectRef(ptr) { TVM_FFI_ICHECK(ptr != nullptr); }
+
+    /*!
    * \brief Load a module from file.
    * \param file_name The name of the host function module.
    * \param format The format of the file.
@@ -203,7 +219,7 @@ public:
     TVM_FFI_EXTRA_CXX_API static void VisitContextSymbols(
             const ffi::TypedFunction<void(String, void*)>& callback);
 
-    TVM_FFI_DEFINE_MUTABLE_NOTNULLABLE_OBJECT_REF_METHODS(Module, ObjectRef, ModuleObj);
+    TVM_FFI_DEFINE_OBJECT_REF_METHODS_NOTNULLABLE(Module, ObjectRef, ModuleObj);
 };
 
 /*
@@ -223,7 +239,7 @@ constexpr const char* tvm_ffi_library_ctx = "__tvm_ffi__library_ctx";
 constexpr const char* tvm_ffi_library_bin = "__tvm_ffi__library_bin";
 /*! \brief Optional metadata prefix of a symbol. */
 constexpr const char* tvm_ffi_metadata_prefix = "__tvm_ffi__metadata_";
-}  // namespace symbol
+}// namespace symbol
 }// namespace ffi
 }// namespace litetvm
 

@@ -104,7 +104,7 @@ Module Module::LoadFromFile(const String& file_name) {
     return (*floader)(file_name, format).cast<Module>();
 }
 
-TVM_FFI_STATIC_INIT_BLOCK({
+TVM_FFI_STATIC_INIT_BLOCK() {
     namespace refl = litetvm::ffi::reflection;
     ModuleObj::InternalUnsafe::RegisterReflection();
 
@@ -129,7 +129,7 @@ TVM_FFI_STATIC_INIT_BLOCK({
             .def_method("ffi.ModuleWriteToFile", &ModuleObj::WriteToFile)
             .def_method("ffi.ModuleImportModule", &ModuleObj::ImportModule)
             .def_method("ffi.ModuleClearImports", &ModuleObj::ClearImports);
-});
+}
 }// namespace ffi
 }// namespace litetvm
 

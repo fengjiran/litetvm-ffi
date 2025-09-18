@@ -31,8 +31,7 @@ public:
     }
 
     static constexpr uint32_t _type_index = kTVMFFIShape;
-    static constexpr const char* _type_key = StaticTypeKey::kTVMFFIShape;
-    TVM_FFI_DECLARE_STATIC_OBJECT_INFO(ShapeObj, Object);
+    TVM_FFI_DECLARE_OBJECT_INFO_STATIC(StaticTypeKey::kTVMFFIShape, ShapeObj, Object);
 };
 
 namespace details {
@@ -71,13 +70,13 @@ TVM_FFI_INLINE ObjectPtr<ShapeObj> MakeInplaceShape(Iter begin, Iter end) {
     return p;
 }
 
-TVM_FFI_INLINE ObjectPtr<ShapeObj> MakeStridesFromShape(int64_t ndim, int64_t* shape) {
+TVM_FFI_INLINE ObjectPtr<ShapeObj> MakeStridesFromShape(const int64_t* data, int64_t ndim) {
     int64_t* strides_data;
-    ObjectPtr<ShapeObj> strides = details::MakeEmptyShape(ndim, &strides_data);
+    ObjectPtr<ShapeObj> strides = MakeEmptyShape(ndim, &strides_data);
     int64_t stride = 1;
     for (int i = ndim - 1; i >= 0; --i) {
         strides_data[i] = stride;
-        stride *= shape[i];
+        stride *= data[i];
     }
     return strides;
 }
@@ -125,6 +124,16 @@ public:
    */
     Shape(std::vector<int64_t> other)// NOLINT(*)
         : ObjectRef(make_object<details::ShapeObjStdImpl>(std::move(other))) {}
+
+    /*!
+   * \brief Create a strides from a shape.
+   * \param data The shape data.
+   * \param ndim The number of dimensions.
+   * \return The strides.
+   */
+    static Shape StridesFromShape(const int64_t* data, int64_t ndim) {
+        return Shape(details::MakeStridesFromShape(data, ndim));
+    }
 
     /*!
    * \brief Return the data pointer
@@ -195,7 +204,10 @@ public:
         return get()->Product();
     }
 
-    TVM_FFI_DEFINE_NOTNULLABLE_OBJECT_REF_METHODS(Shape, ObjectRef, ShapeObj);
+    TVM_FFI_DEFINE_OBJECT_REF_METHODS_NOTNULLABLE(Shape, ObjectRef, ShapeObj);
+
+private:
+    explicit Shape(ObjectPtr<ShapeObj> ptr) : ObjectRef(ptr) {}
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Shape& shape) {
