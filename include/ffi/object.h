@@ -556,68 +556,69 @@ template<typename T>
 class WeakObjectPtr {
 public:
     /*! \brief default constructor */
-    WeakObjectPtr() {}
+    WeakObjectPtr() = default;
+
     /*! \brief default constructor */
-    WeakObjectPtr(std::nullptr_t) {}// NOLINT(*)
-    /*!
-   * \brief copy constructor
-   * \param other The value to be moved
-   */
-    WeakObjectPtr(const WeakObjectPtr<T>& other)// NOLINT(*)
-        : WeakObjectPtr(other.data_) {}
+    WeakObjectPtr(std::nullptr_t) {}// NOLINT
 
     /*!
    * \brief copy constructor
    * \param other The value to be moved
    */
-    WeakObjectPtr(const ObjectPtr<T>& other)// NOLINT(*)
-        : WeakObjectPtr(other.get()) {}
+    WeakObjectPtr(const WeakObjectPtr& other) : WeakObjectPtr(other.data_) {}
+
+    /*!
+   * \brief copy constructor
+   * \param other The value to be moved
+   */
+    WeakObjectPtr(const ObjectPtr<T>& other) : WeakObjectPtr(other.get()) {}// NOLINT
+
     /*!
    * \brief copy constructor
    * \param other The value to be moved
    */
     template<typename U>
-    WeakObjectPtr(const WeakObjectPtr<U>& other)// NOLINT(*)
-        : WeakObjectPtr(other.data_) {
-        static_assert(std::is_base_of<T, U>::value,
-                      "can only assign of child class ObjectPtr to parent");
+    WeakObjectPtr(const WeakObjectPtr<U>& other) : WeakObjectPtr(other.data_) {// NOLINT
+        static_assert(std::is_base_of_v<T, U>, "can only assign of child class ObjectPtr to parent");
     }
+
     /*!
    * \brief copy constructor
    * \param other The value to be moved
    */
     template<typename U>
-    WeakObjectPtr(const ObjectPtr<U>& other)// NOLINT(*)
-        : WeakObjectPtr(other.data_) {
-        static_assert(std::is_base_of<T, U>::value,
-                      "can only assign of child class ObjectPtr to parent");
+    WeakObjectPtr(const ObjectPtr<U>& other) : WeakObjectPtr(other.data_) {// NOLINT
+        static_assert(std::is_base_of_v<T, U>, "can only assign of child class ObjectPtr to parent");
     }
+
     /*!
    * \brief move constructor
    * \param other The value to be moved
    */
-    WeakObjectPtr(WeakObjectPtr<T>&& other)// NOLINT(*)
-        : data_(other.data_) {
+    WeakObjectPtr(WeakObjectPtr&& other) noexcept : data_(other.data_) {
         other.data_ = nullptr;
     }
+
     /*!
    * \brief move constructor
    * \param other The value to be moved
    */
     template<typename Y>
-    WeakObjectPtr(WeakObjectPtr<Y>&& other)// NOLINT(*)
-        : data_(other.data_) {
-        static_assert(std::is_base_of<T, Y>::value,
-                      "can only assign of child class ObjectPtr to parent");
+    WeakObjectPtr(WeakObjectPtr<Y>&& other) : data_(other.data_) {// NOLINT
+        static_assert(std::is_base_of_v<T, Y>, "can only assign of child class ObjectPtr to parent");
         other.data_ = nullptr;
     }
+
     /*! \brief destructor */
-    ~WeakObjectPtr() { this->reset(); }
+    ~WeakObjectPtr() {
+        this->reset();
+    }
+
     /*!
    * \brief Swap this array with another Object
    * \param other The other Object
    */
-    void swap(WeakObjectPtr<T>& other) {// NOLINT(*)
+    void swap(WeakObjectPtr& other) noexcept {
         std::swap(data_, other.data_);
     }
 
@@ -626,20 +627,21 @@ public:
    * \param other The value to be assigned.
    * \return reference to self.
    */
-    WeakObjectPtr<T>& operator=(const WeakObjectPtr<T>& other) {// NOLINT(*)
+    WeakObjectPtr& operator=(const WeakObjectPtr& other) {
         // takes in plane operator to enable copy elison.
         // copy-and-swap idiom
-        WeakObjectPtr(other).swap(*this);// NOLINT(*)
+        WeakObjectPtr(other).swap(*this);
         return *this;
     }
+
     /*!
    * \brief move assignment
    * \param other The value to be assigned.
    * \return reference to self.
    */
-    WeakObjectPtr<T>& operator=(WeakObjectPtr<T>&& other) {// NOLINT(*)
+    WeakObjectPtr& operator=(WeakObjectPtr&& other) noexcept {
         // copy-and-swap idiom
-        WeakObjectPtr(std::move(other)).swap(*this);// NOLINT(*)
+        WeakObjectPtr(std::move(other)).swap(*this);
         return *this;
     }
 
@@ -663,10 +665,14 @@ public:
     }
 
     /*! \return The use count of the ptr, for debug purposes */
-    int use_count() const { return data_ != nullptr ? data_->use_count() : 0; }
+    NODISCARD int use_count() const {
+        return data_ != nullptr ? data_->use_count() : 0;
+    }
 
     /*! \return whether the pointer is nullptr */
-    bool expired() const { return data_ == nullptr || data_->use_count() == 0; }
+    NODISCARD bool expired() const {
+        return data_ == nullptr || data_->use_count() == 0;
+    }
 
 private:
     /*! \brief internal pointer field */
@@ -684,7 +690,7 @@ private:
 
     template<typename>
     friend class WeakObjectPtr;
-    friend struct litetvm::ffi::details::ObjectUnsafe;
+    friend struct details::ObjectUnsafe;
 };
 
 /*!
