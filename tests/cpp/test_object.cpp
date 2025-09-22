@@ -11,13 +11,14 @@ namespace {
 using namespace litetvm::ffi;
 using namespace litetvm::ffi::testing;
 
-class test_object : public Object {};
+// class test_object : public Object {};
 
 TEST(Object, RefCounter) {
     auto a = make_object<TIntObj>(10);
     ObjectPtr<TIntObj> b = a;
     EXPECT_EQ(a->value, 10);
     EXPECT_EQ(a.use_count(), 2);
+    EXPECT_EQ(a->weak_use_count(), 1);
 
     auto aa = make_object<TIntObj>(11);
     EXPECT_EQ(aa.use_count(), 1);

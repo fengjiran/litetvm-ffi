@@ -209,6 +209,10 @@ public:
 #endif
     }
 
+    NODISCARD uint32_t weak_use_count() const {
+        return __atomic_load_n(&(header_.weak_ref_count), __ATOMIC_RELAXED);
+    }
+
     // Information about the object
     static constexpr const char* _type_key = "object.Object";
 
