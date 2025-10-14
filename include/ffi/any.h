@@ -524,12 +524,12 @@ struct AnyUnsafe : public ObjectUnsafe {
         return result;
     }
 
-    TVM_FFI_INLINE static Any MoveTVMFFIAnyToAny(TVMFFIAny&& data) {
+    TVM_FFI_INLINE static Any MoveTVMFFIAnyToAny(TVMFFIAny* data) {
         Any any;
-        any.data_ = data;
-        data.type_index = kTVMFFINone;
-        data.zero_padding = 0;
-        data.v_int64 = 0;
+        any.data_ = *data;
+        data->type_index = kTVMFFINone;
+        data->zero_padding = 0;
+        data->v_int64 = 0;
         return any;
     }
 

@@ -300,7 +300,7 @@ public:
     TVM_FFI_DEFINE_OBJECT_REF_METHODS_NOTNULLABLE(Shape, ObjectRef, ShapeObj);
 
 private:
-    explicit Shape(ObjectPtr<ShapeObj> ptr) : ObjectRef(ptr) {}
+    explicit Shape(ObjectPtr<ShapeObj> ptr) : ObjectRef(std::move(ptr)) {}
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Shape& shape) {
@@ -324,7 +324,7 @@ template<>
 struct TypeTraits<Shape> : ObjectRefWithFallbackTraitsBase<Shape, Array<int64_t>> {
     static constexpr int32_t field_static_type_index = kTVMFFIShape;
     TVM_FFI_INLINE static Shape ConvertFallbackValue(const Array<int64_t>& src) {
-        return {src};
+        return {std::move(src)};
     }
 };
 

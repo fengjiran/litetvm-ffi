@@ -78,7 +78,7 @@ inline bool IsAligned(const DLTensor& arr, size_t alignment) {
  * \param dtype the data type of the array
  * \return the total number bytes needs to store packed data
  */
-inline size_t GetDataSize(int64_t numel, DLDataType dtype) {
+inline size_t GetDataSize(size_t numel, DLDataType dtype) {
     // compatible handling sub-byte uint1(bool), which usually stored as uint8_t
     // TODO(tqchen): revisit and switch to kDLBool
     if (dtype.code == kDLUInt && dtype.bits == 1 && dtype.lanes == 1) {
@@ -318,7 +318,7 @@ public:
    * \param device The device of the Tensor.
    * \return The created Tensor.
    */
-    static Tensor FromDLPackAlloc(DLPackTensorAllocator allocator, ffi::Shape shape, DLDataType dtype,
+    static Tensor FromDLPackAlloc(DLPackTensorAllocator allocator, ShapeView shape, DLDataType dtype,
                                   DLDevice device) {
         if (allocator == nullptr) {
             TVM_FFI_THROW(RuntimeError)
@@ -604,7 +604,7 @@ struct TypeTraits<TensorView> : public TypeTraitsBase {
     }
 
     TVM_FFI_INLINE static std::string TypeSchema() {
-        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIDLTensorPtr) + "\"}";
+        return R"({"type":")" + std::string(StaticTypeKey::kTVMFFIDLTensorPtr) + R"("})";
     }
 };
 

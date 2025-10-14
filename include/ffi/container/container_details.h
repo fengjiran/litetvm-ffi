@@ -5,6 +5,7 @@
 #ifndef LITETVM_FFI_CONTAINER_CONTAINER_DETAILS_H
 #define LITETVM_FFI_CONTAINER_CONTAINER_DETAILS_H
 
+#include "ffi/any.h"
 #include "ffi/object.h"
 
 #include <sstream>
@@ -95,6 +96,10 @@ public:
             }
         }
     }
+
+private:
+    InplaceArrayBase() = default;
+    friend ArrayType;
 
 protected:
     /*!
@@ -256,8 +261,8 @@ public:
     }
 
     template<typename T = ReverseIterAdapter>
-    typename std::enable_if<std::is_same<iterator_category, std::random_access_iterator_tag>::value,
-                            typename T::difference_type>::type inline
+    std::enable_if_t<std::is_same_v<iterator_category, std::random_access_iterator_tag>,
+                     typename T::difference_type>
     operator-(const ReverseIterAdapter& rhs) const {
         return rhs.iter_ - iter_;
     }

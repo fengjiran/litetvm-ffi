@@ -35,10 +35,10 @@ public:
     Tuple(Tuple&& other) noexcept : ObjectRef(std::move(other)) {}
     template<typename... UTypes,
              typename = std::enable_if_t<(details::type_contains_v<Types, UTypes> && ...), int>>
-    Tuple(const Tuple<UTypes...>& other) : ObjectRef(other) {}
+    Tuple(const Tuple<UTypes...>& other) : ObjectRef(other) {}// NOLINT(google-explicit-constructor)
     template<typename... UTypes,
              typename = std::enable_if_t<(details::type_contains_v<Types, UTypes> && ...), int>>
-    Tuple(Tuple<UTypes...>&& other) : ObjectRef(std::move(other)) {}
+    Tuple(Tuple<UTypes...>&& other) : ObjectRef(std::move(other)) {}// NOLINT(google-explicit-constructor)
 
     template<typename... UTypes,
              typename = std::enable_if_t<sizeof...(Types) == sizeof...(UTypes) && !(sizeof...(Types) == 1 &&
@@ -246,7 +246,7 @@ struct TypeTraits<Tuple<Types...>> : ObjectRefTypeTraitsBase<Tuple<Types...>> {
 
     TVM_FFI_INLINE static std::string TypeSchema() {
         std::ostringstream oss;
-        oss << "{\"type\":\"Tuple\",\"args\":[";
+        oss << R"({"type":"Tuple","args":[)";
         const char* sep = "";
         ((oss << sep << details::TypeSchema<Types>::v(), sep = ","), ...);
         oss << "]}";

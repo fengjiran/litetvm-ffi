@@ -39,9 +39,9 @@
  */
 #define TVM_FFI_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName) \
     TypeName(const TypeName& other) = default;                \
-    TypeName(TypeName&& other) = default;                     \
+    TypeName(TypeName&& other) noexcept = default;            \
     TypeName& operator=(const TypeName& other) = default;     \
-    TypeName& operator=(TypeName&& other) = default;
+    TypeName& operator=(TypeName&& other) noexcept = default;
 
 namespace litetvm {
 namespace ffi {
@@ -155,8 +155,6 @@ TVM_FFI_INLINE uint64_t StableHashBytes(const void* data_ptr, size_t size) {
         }
         if (it + 1 <= end) {
             a[0] = it[0];
-            it += 1;
-            a += 1;
         }
         if constexpr (!TVM_FFI_IO_NO_ENDIAN_SWAP) {
             std::swap(u.a[0], u.a[7]);

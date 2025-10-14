@@ -11,6 +11,8 @@
 #include "ffi/function.h"
 #include "ffi/object.h"
 
+#include <cstdint>
+
 namespace litetvm {
 namespace ffi {
 
@@ -97,7 +99,7 @@ public:
    * \param format Format of the source code, can be empty by default.
    * \return Possible source code when available, or empty string if not available.
    */
-    virtual String InspectSource(const String& format = "") const { return String(); }
+    virtual String InspectSource(const String& format) const { return String(); }
     /*!
    * \brief Import another module.
    * \param other The module to import.
@@ -218,7 +220,9 @@ public:
    * \brief Constructor from ObjectPtr<ModuleObj>.
    * \param ptr The object pointer.
    */
-    explicit Module(ObjectPtr<ModuleObj> ptr) : ObjectRef(ptr) { TVM_FFI_ICHECK(ptr != nullptr); }
+    explicit Module(const ObjectPtr<ModuleObj>& ptr) : ObjectRef(ptr) {
+        TVM_FFI_ICHECK(ptr != nullptr);
+    }
 
     /*!
    * \brief Load a module from file.

@@ -60,7 +60,7 @@ public:
    * \brief Constructor
    * \param dict The initial dictionary
    */
-    explicit Metadata(std::initializer_list<std::pair<String, Any>> dict) : dict_(dict) {}
+    Metadata(std::initializer_list<std::pair<String, Any>> dict) : dict_(dict) {}
     /*!
    * \brief Move metadata into `FieldInfoBuilder`
    * \param info The field info builder.
@@ -254,7 +254,7 @@ protected:
                 // call method pointer
                 return (target.*func)(std::forward<Args>(params)...);
             };
-            return Function::FromTyped(fwrap, name);
+            return Function::FromTyped(fwrap, std::move(name));
         }
 
         if constexpr (std::is_base_of_v<Object, Class>) {
@@ -262,7 +262,7 @@ protected:
                 // call method pointer
                 return (const_cast<Class*>(target)->*func)(std::forward<Args>(params)...);
             };
-            return Function::FromTyped(fwrap, name);
+            return Function::FromTyped(fwrap, std::move(name));
         }
     }
 
@@ -275,7 +275,7 @@ protected:
                 // call method pointer
                 return (target.*func)(std::forward<Args>(params)...);
             };
-            return Function::FromTyped(fwrap, name);
+            return Function::FromTyped(fwrap, std::move(name));
         }
 
         if constexpr (std::is_base_of_v<Object, Class>) {
@@ -283,13 +283,13 @@ protected:
                 // call method pointer
                 return (target->*func)(std::forward<Args>(params)...);
             };
-            return Function::FromTyped(fwrap, name);
+            return Function::FromTyped(fwrap, std::move(name));
         }
     }
 
     template<typename Func>
     TVM_FFI_INLINE static Function GetMethod(std::string name, Func&& func) {
-        return Function::FromTyped(std::forward<Func>(func), name);
+        return Function::FromTyped(std::forward<Func>(func), std::move(name));
     }
 };
 

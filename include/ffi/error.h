@@ -308,9 +308,11 @@ TVM_FFI_CHECK_FUNC(_NE, !=)
 #endif
 }// namespace details
 
-#define TVM_FFI_ICHECK_BINARY_OP(name, op, x, y)                              \
-    if (auto __tvm__log__err = ::litetvm::ffi::details::LogCheck##name(x, y)) \
-    TVM_FFI_THROW(InternalError) << "Check failed: " << #x " " #op " " #y << *__tvm__log__err << ": "
+#define TVM_FFI_ICHECK_BINARY_OP(name, op, x, y)                                                \
+    if (auto __tvm_ffi_log_err = /* NOLINT(bugprone-reserved-identifier) */                     \
+        ::litetvm::ffi::details::LogCheck##name(x, y))                                          \
+    TVM_FFI_THROW(InternalError) << "Check failed: " << #x " " #op " " #y << *__tvm_ffi_log_err \
+                                 << ": "
 
 #define TVM_FFI_ICHECK(x) \
     if (!(x)) TVM_FFI_THROW(InternalError) << "Check failed: (" #x << ") is false: "

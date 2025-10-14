@@ -52,7 +52,8 @@ class VariantBase<true> : public ObjectRef {
 protected:
     template<typename T>
     explicit VariantBase(const T& other) : ObjectRef(other) {}
-    template<typename T>
+    template<typename T,
+             typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, VariantBase<true>>>>
     explicit VariantBase(T&& other) : ObjectRef(std::move(other)) {}
     explicit VariantBase(UnsafeInit tag) : ObjectRef(tag) {}
     explicit VariantBase(Any other)
@@ -204,7 +205,7 @@ struct TypeTraits<Variant<V...>> : TypeTraitsBase {
     }
 
     TVM_FFI_INLINE static Variant<V...> MoveFromAnyAfterCheck(TVMFFIAny* src) {
-        return Variant<V...>(details::AnyUnsafe::MoveTVMFFIAnyToAny(std::move(*src)));
+        return Variant<V...>(details::AnyUnsafe::MoveTVMFFIAnyToAny(src));
     }
 
     TVM_FFI_INLINE static std::optional<Variant<V...>> TryCastFromAnyView(const TVMFFIAny* src) {
@@ -227,13 +228,13 @@ struct TypeTraits<Variant<V...>> : TypeTraitsBase {
         return std::nullopt;
     }
 
-    TVM_FFI_INLINE static  std::string TypeStr() {
+    TVM_FFI_INLINE static std::string TypeStr() {
         return details::ContainerTypeStr<V...>("Variant");
     }
 
     TVM_FFI_INLINE static std::string TypeSchema() {
         std::ostringstream oss;
-        oss << "{\"type\":\"Variant\",\"args\":[";
+        oss << R"({"type":"Variant","args":[)";
         const char* sep = "";
         ((oss << sep << details::TypeSchema<V>::v(), sep = ","), ...);
         oss << "]}";
