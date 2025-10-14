@@ -47,15 +47,14 @@ public:
    */
     template<typename T, typename... Args>
     ObjectPtr<T> make_object(Args&&... args) {
-        using Handler = typename Derived::template Handler<T>;
+        using Handler = Derived::template Handler<T>;
         static_assert(std::is_base_of_v<Object, T>, "make can only be used to create Object");
         T* ptr = Handler::New(static_cast<Derived*>(this), std::forward<Args>(args)...);
-        TVMFFIObject* ffi_ptr = details::ObjectUnsafe::GetHeader(ptr);
-        ffi_ptr->strong_ref_count = 1;
-        ffi_ptr->weak_ref_count = 1;
+        TVMFFIObject* ffi_ptr = ObjectUnsafe::GetHeader(ptr);
+        ffi_ptr->combined_ref_count = kCombinedRefCountBothOne;
         ffi_ptr->type_index = T::RuntimeTypeIndex();
         ffi_ptr->deleter = Handler::Deleter();
-        return details::ObjectUnsafe::ObjectPtrFromOwned<T>(ptr);
+        return ObjectUnsafe::ObjectPtrFromOwned<T>(ptr);
     }
 
     /*!
@@ -67,15 +66,14 @@ public:
    */
     template<typename ArrayType, typename ElemType, typename... Args>
     ObjectPtr<ArrayType> make_inplace_array(size_t num_elems, Args&&... args) {
-        using Handler = typename Derived::template ArrayHandler<ArrayType, ElemType>;
+        using Handler = Derived::template ArrayHandler<ArrayType, ElemType>;
         static_assert(std::is_base_of_v<Object, ArrayType>, "make_inplace_array can only be used to create Object");
         ArrayType* ptr = Handler::New(static_cast<Derived*>(this), num_elems, std::forward<Args>(args)...);
-        TVMFFIObject* ffi_ptr = details::ObjectUnsafe::GetHeader(ptr);
-        ffi_ptr->strong_ref_count = 1;
-        ffi_ptr->weak_ref_count = 1;
+        TVMFFIObject* ffi_ptr = ObjectUnsafe::GetHeader(ptr);
+        ffi_ptr->combined_ref_count = kCombinedRefCountBothOne;
         ffi_ptr->type_index = ArrayType::RuntimeTypeIndex();
         ffi_ptr->deleter = Handler::Deleter();
-        return details::ObjectUnsafe::ObjectPtrFromOwned<ArrayType>(ptr);
+        return ObjectUnsafe::ObjectPtrFromOwned<ArrayType>(ptr);
     }
 };
 

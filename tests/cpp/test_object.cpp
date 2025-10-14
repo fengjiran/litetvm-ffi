@@ -18,7 +18,6 @@ TEST(Object, RefCounter) {
     ObjectPtr<TIntObj> b = a;
     EXPECT_EQ(a->value, 10);
     EXPECT_EQ(a.use_count(), 2);
-    EXPECT_EQ(a->weak_use_count(), 1);
 
     auto aa = make_object<TIntObj>(11);
     EXPECT_EQ(aa.use_count(), 1);

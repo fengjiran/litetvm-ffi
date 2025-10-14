@@ -201,18 +201,33 @@ typedef enum {
  */
 struct TVMFFIObject {
     /*!
+   * \brief Combined strong and weak reference counter of the object.
+   *
+   * Strong ref counter is packed into the lower 32 bits.
+   * Weak ref counter is packed into the upper 32 bits.
+   *
+   * It is equivalent to { uint32_t strong_ref_count, uint32_t weak_ref_count }
+   * in little-endian structure:
+   *
+   * - strong_ref_count: `combined_ref_count & 0xFFFFFFFF`
+   * - weak_ref_count: `(combined_ref_count >> 32) & 0xFFFFFFFF`
+   *
+   * Rationale: atomic ops on strong ref counter remains the same as +1/-1,
+   * this combined ref counter allows us to use u64 atomic once
+   * instead of a separate atomic read of weak counter during deletion.
+   *
+   * The ref counter goes first to align ABI with most intrusive ptr designs.
+   * It is also likely more efficient as rc operations can be quite common.
+   */
+    uint64_t combined_ref_count;
+
+    /*!
    * \brief type index of the object.
    * \note The type index of Object and Any are shared in FFI.
    */
     int32_t type_index;
-    /*!
-   * \brief Weak reference counter of the object, for compatiblity with weak_ptr design.
-   * \note Use u32 to ensure that overall object stays within 24-byte boundary, usually
-   *       manipulation of weak counter is less common than strong counter.
-   */
-    uint32_t weak_ref_count;
-    /*! \brief Strong reference counter of the object. */
-    uint64_t strong_ref_count;
+    /*! \brief Extra padding to ensure 8 bytes alignment. */
+    uint32_t __padding;
 #if !defined(TVM_FFI_DOXYGEN_MODE)
     union {
 #endif
