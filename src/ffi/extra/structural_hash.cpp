@@ -63,7 +63,7 @@ public:
             case kTVMFFIShape: {
                 return HashShape(AnyUnsafe::MoveFromAnyAfterCheck<Shape>(std::move(src)));
             }
-            case kTVMFFINDArray: {
+            case kTVMFFITensor: {
                 return HashNDArray(AnyUnsafe::MoveFromAnyAfterCheck<Tensor>(std::move(src)));
             }
             default: {

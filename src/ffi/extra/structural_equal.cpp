@@ -93,7 +93,7 @@ public:
                                     AnyUnsafe::MoveFromAnyAfterCheck<Shape>(std::move(rhs)));
             }
 
-            case kTVMFFINDArray: {
+            case kTVMFFITensor: {
                 return CompareNDArray(AnyUnsafe::MoveFromAnyAfterCheck<Tensor>(std::move(lhs)),
                                       AnyUnsafe::MoveFromAnyAfterCheck<Tensor>(std::move(rhs)));
             }

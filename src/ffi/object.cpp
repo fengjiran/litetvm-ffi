@@ -181,16 +181,15 @@ public:
     void RegisterTypeField(int32_t type_index, const TVMFFIFieldInfo* info) {
         Entry* entry = GetTypeEntry(type_index);
         TVMFFIFieldInfo field_data = *info;
-
-        // field_data.name = CopyString(info->name);
-        // field_data.doc = CopyString(info->doc);
-        // field_data.type_schema = CopyString(info->type_schema);
+        field_data.name = this->CopyString(info->name);
+        field_data.doc = this->CopyString(info->doc);
+        field_data.metadata = this->CopyString(info->metadata);
         if (info->flags & kTVMFFIFieldFlagBitMaskHasDefault) {
-            field_data.default_value = CopyAny(AnyView::CopyFromTVMFFIAny(info->default_value)).CopyToTVMFFIAny();
+            field_data.default_value =
+                this->CopyAny(AnyView::CopyFromTVMFFIAny(info->default_value)).CopyToTVMFFIAny();
         } else {
             field_data.default_value = AnyView(nullptr).CopyToTVMFFIAny();
         }
-
         entry->type_fields_data.push_back(field_data);
         // refresh ptr as the data can change
         entry->fields = entry->type_fields_data.data();
@@ -202,7 +201,7 @@ public:
         TVMFFIMethodInfo method_data = *info;
         method_data.name = CopyString(info->name);
         method_data.doc = CopyString(info->doc);
-        method_data.type_schema = CopyString(info->type_schema);
+        method_data.metadata = CopyString(info->metadata);
         method_data.method = CopyAny(AnyView::CopyFromTVMFFIAny(info->method)).CopyToTVMFFIAny();
         entry->type_methods_data.push_back(method_data);
         entry->methods = entry->type_methods_data.data();

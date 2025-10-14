@@ -63,7 +63,6 @@ bool ModuleObj::ImplementsFunction(const String& name, bool query_imports) {
     return false;
 }
 
-
 Optional<String> ModuleObj::GetFunctionMetadata(const String& name, bool query_imports) {
     if (auto opt_metadata = this->GetFunctionMetadata(name)) {
         return opt_metadata;
@@ -72,6 +71,20 @@ Optional<String> ModuleObj::GetFunctionMetadata(const String& name, bool query_i
         for (const Any& import: imports_) {
             if (auto opt_metadata = import.cast<Module>()->GetFunctionMetadata(name, query_imports)) {
                 return *opt_metadata;
+            }
+        }
+    }
+    return std::nullopt;
+}
+
+Optional<String> ModuleObj::GetFunctionDoc(const String& name, bool query_imports) {
+    if (auto opt_str = this->GetFunctionDoc(name)) {
+        return opt_str;
+    }
+    if (query_imports) {
+        for (const Any& import: imports_) {
+            if (auto opt_str = import.cast<Module>()->GetFunctionDoc(name, query_imports)) {
+                return *opt_str;
             }
         }
     }
@@ -117,6 +130,10 @@ TVM_FFI_STATIC_INIT_BLOCK() {
             .def_method("ffi.ModuleGetFunctionMetadata",
                         [](Module mod, String name, bool query_imports) {
                             return mod->GetFunctionMetadata(name, query_imports);
+                        })
+            .def_method("ffi.ModuleGetFunctionDoc",
+                        [](Module mod, String name, bool query_imports) {
+                            return mod->GetFunctionDoc(name, query_imports);
                         })
             .def_method("ffi.ModuleGetFunction",
                         [](Module mod, String name, bool query_imports) {

@@ -99,6 +99,7 @@ public:
         TVMFFIObject* ffi_ptr = ObjectUnsafe::GetHeader(ptr);
         ffi_ptr->combined_ref_count = kCombinedRefCountBothOne;
         ffi_ptr->type_index = T::RuntimeTypeIndex();
+        ffi_ptr->__padding = 0;
         ffi_ptr->deleter = Handler::Deleter();
         return ObjectUnsafe::ObjectPtrFromOwned<T>(ptr);
     }
@@ -118,6 +119,7 @@ public:
         TVMFFIObject* ffi_ptr = ObjectUnsafe::GetHeader(ptr);
         ffi_ptr->combined_ref_count = kCombinedRefCountBothOne;
         ffi_ptr->type_index = ArrayType::RuntimeTypeIndex();
+        ffi_ptr->__padding = 0;
         ffi_ptr->deleter = Handler::Deleter();
         return ObjectUnsafe::ObjectPtrFromOwned<ArrayType>(ptr);
     }
