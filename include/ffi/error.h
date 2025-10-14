@@ -10,13 +10,13 @@
 #include "ffi/memory.h"
 #include "ffi/object.h"
 
+#include <cstring>
 #include <iostream>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
-#include <cstring>
 
 /*!
  * \brief Macro defines whether we enable libbacktrace
@@ -314,6 +314,9 @@ TVM_FFI_CHECK_FUNC(_NE, !=)
 
 #define TVM_FFI_ICHECK(x) \
     if (!(x)) TVM_FFI_THROW(InternalError) << "Check failed: (" #x << ") is false: "
+
+#define TVM_FFI_CHECK(cond, ErrorKind) \
+    if (!(cond)) TVM_FFI_THROW(ErrorKind) << "Check failed: (" #cond << ") is false: "
 
 #define TVM_FFI_ICHECK_LT(x, y) TVM_FFI_ICHECK_BINARY_OP(_LT, <, x, y)
 #define TVM_FFI_ICHECK_GT(x, y) TVM_FFI_ICHECK_BINARY_OP(_GT, >, x, y)

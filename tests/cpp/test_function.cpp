@@ -37,7 +37,6 @@ TEST(Func, for_each) {
 
     std::cout << details::FuncFunctorImpl<int, int, float, double, void*>::Sig() << std::endl;
     // std::index_sequence<0, 1, 2, 3, 4> seq = std::make_index_sequence<5>();
-
 }
 
 TEST(Func, FromPacked) {
@@ -245,6 +244,16 @@ TEST(Func, ObjectRefWithFallbackTraits) {
                 }
             },
             ::litetvm::ffi::Error);
+}
+
+int testing_add1(int x) { return x + 1; }
+
+TVM_FFI_DLL_EXPORT_TYPED_FUNC(testing_add1, testing_add1);
+
+TEST(Func, FromExternC) {
+    // this is the function abi convention
+    Function fadd1 = Function::FromExternC(nullptr, __tvm_ffi_testing_add1, nullptr);
+    EXPECT_EQ(fadd1(1).cast<int>(), 2);
 }
 
 }// namespace
