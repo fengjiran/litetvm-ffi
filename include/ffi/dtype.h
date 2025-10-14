@@ -149,6 +149,10 @@ struct TypeTraits<DLDataType> : TypeTraitsBase {
     TVM_FFI_INLINE static std::string TypeStr() {
         return StaticTypeKey::kTVMFFIDataType;
     }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIDataType) + "\"}";
+    }
 };
 }// namespace ffi
 }// namespace litetvm

@@ -7,23 +7,118 @@
 
 #include "ffi/any.h"
 #include "ffi/c_api.h"
+#include "ffi/container/map.h"
+#include "ffi/container/variant.h"
 #include "ffi/function.h"
+#include "ffi/optional.h"
+#include "ffi/string.h"
 #include "ffi/type_traits.h"
 
+#include <iterator>
+#include <optional>
+#include <sstream>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace litetvm {
 namespace ffi {
 namespace reflection {
 
-/*! \brief Trait that can be used to set field info */
-struct FieldInfoTrait {};
+/*!
+ * \brief Types of temporary metadata hold in FieldInfoBuilder and MethodInfoBuilder,
+ * before they are filled into final C metadata
+ */
+using _MetadataType = std::vector<std::pair<String, Any>>;
+/*!
+ * \brief Builder for TVMFFIFieldInfo
+ * \sa TVMFFIFieldInfo
+ */
+struct FieldInfoBuilder : TVMFFIFieldInfo {
+    /*! \brief Temporary metadata info to be filled into TVMFFIFieldInfo::metadata */
+    _MetadataType metadata_;
+};
+/*!
+ * \brief Builder for TVMFFIMethodInfo
+ * \sa TVMFFIMethodInfo
+ */
+struct MethodInfoBuilder : TVMFFIMethodInfo {
+    /*! \brief Temporary metadata info to be filled into TVMFFIMethodInfo::metadata */
+    _MetadataType metadata_;
+};
+
+/*!
+ * \brief Trait that can be used to set information attached to a field or a method.
+ * \sa DefaultValue, AttachFieldFlag
+ */
+struct InfoTrait {};
+
+/*! \brief User-supplied metadata attached to a field or a method */
+class Metadata : public InfoTrait {
+public:
+    /*!
+   * \brief Constructor
+   * \param dict The initial dictionary
+   */
+    explicit Metadata(std::initializer_list<std::pair<String, Any>> dict) : dict_(dict) {}
+    /*!
+   * \brief Move metadata into `FieldInfoBuilder`
+   * \param info The field info builder.
+   */
+    inline void Apply(FieldInfoBuilder* info) const { this->Apply(&info->metadata_); }
+    /*!
+   * \brief Move metadata into `MethodInfoBuilder`
+   * \param info The method info builder.
+   */
+    void Apply(MethodInfoBuilder* info) const { this->Apply(&info->metadata_); }
+
+private:
+    friend class GlobalDef;
+    template<typename T>
+    friend class ObjectDef;
+    /*!
+   * \brief Move metadata into a vector of key-value pairs.
+   * \param out The output vector.
+   */
+    void Apply(_MetadataType* out) const {
+        std::copy(std::make_move_iterator(dict_.begin()), std::make_move_iterator(dict_.end()),
+                  std::back_inserter(*out));
+    }
+    /*! \brief Convert the metadata to JSON string */
+    static std::string ToJSON(const _MetadataType& metadata) {
+        using details::StringObj;
+        std::ostringstream os;
+        os << "{";
+        bool first = true;
+        for (const auto& [key, value]: metadata) {
+            if (!first) {
+                os << ",";
+            }
+            os << "\"" << key << "\":";
+            if (std::optional<int> v = value.as<int>()) {
+                os << *v;
+            } else if (std::optional<bool> v1 = value.as<bool>()) {
+                os << (*v1 ? "true" : "false");
+            } else if (std::optional<String> v2 = value.as<String>()) {
+                String escaped = EscapeString(*v2);
+                os << escaped.c_str();
+            } else {
+                TVM_FFI_LOG_AND_THROW(TypeError) << "Metadata can be only int, bool or string, but on key `"
+                                                 << key << "`, the type is " << value.GetTypeKey();
+            }
+            first = false;
+        }
+        os << "}";
+        return os.str();
+    }
+
+    std::vector<std::pair<String, Any>> dict_;
+};
 
 /*!
  * \brief Trait that can be used to set field default value
  */
-class DefaultValue : public FieldInfoTrait {
+class DefaultValue : public InfoTrait {
 public:
     explicit DefaultValue(Any value) : value_(std::move(value)) {}
 
@@ -39,7 +134,7 @@ private:
 /*
  * \brief Trait that can be used to attach field flag
  */
-class AttachFieldFlag : public FieldInfoTrait {
+class AttachFieldFlag : public InfoTrait {
 public:
     /*!
      * \brief Attach a field flag to the field
@@ -124,18 +219,20 @@ protected:
 
 
     template<typename T>
-    TVM_FFI_INLINE static void ApplyFieldInfoTrait(TVMFFIFieldInfo* info, const T& value) {
-        if constexpr (std::is_base_of_v<FieldInfoTrait, std::decay_t<T>>) {
+    TVM_FFI_INLINE static void ApplyFieldInfoTrait(FieldInfoBuilder* info, const T& value) {
+        if constexpr (std::is_base_of_v<InfoTrait, std::decay_t<T>>) {
             value.Apply(info);
         }
-
         if constexpr (std::is_same_v<std::decay_t<T>, char*>) {
             info->doc = TVMFFIByteArray{value, std::char_traits<char>::length(value)};
         }
     }
 
     template<typename T>
-    TVM_FFI_INLINE static void ApplyMethodInfoTrait(TVMFFIMethodInfo* info, const T& value) {
+    TVM_FFI_INLINE static void ApplyMethodInfoTrait(MethodInfoBuilder* info, const T& value) {
+        if constexpr (std::is_base_of_v<InfoTrait, std::decay_t<T>>) {
+            value.Apply(info);
+        }
         if constexpr (std::is_same_v<std::decay_t<T>, char*>) {
             info->doc = TVMFFIByteArray{value, std::char_traits<char>::length(value)};
         }
@@ -198,7 +295,7 @@ protected:
 
 class GlobalDef : public ReflectionDefBase {
 public:
-    /*
+    /*!
    * \brief Define a global function.
    *
    * \tparam Func The function type.
@@ -206,17 +303,19 @@ public:
    *
    * \param name The name of the function.
    * \param func The function to be registered.
-   * \param extra The extra arguments that can be docstring.
+   * \param extra The extra arguments that can be docstring or subclass of InfoTrait.
    *
    * \return The reflection definition.
    */
     template<typename Func, typename... Extra>
     GlobalDef& def(const char* name, Func&& func, Extra&&... extra) {
-        RegisterFunc(name, Function::FromTyped(std::forward<Func>(func), std::string(name)), std::forward<Extra>(extra)...);
+        using FuncInfo = details::FunctionInfo<std::decay_t<Func>>;
+        RegisterFunc(name, Function::FromTyped(std::forward<Func>(func), std::string(name)),
+                     FuncInfo::TypeSchema(), std::forward<Extra>(extra)...);
         return *this;
     }
 
-    /*
+    /*!
    * \brief Define a global function in ffi::PackedArgs format.
    *
    * \tparam Func The function type.
@@ -224,13 +323,14 @@ public:
    *
    * \param name The name of the function.
    * \param func The function to be registered.
-   * \param extra The extra arguments that can be docstring.
+   * \param extra The extra arguments that can be docstring or subclass of InfoTrait.
    *
    * \return The reflection definition.
    */
     template<typename Func, typename... Extra>
     GlobalDef& def_packed(const char* name, Func func, Extra&&... extra) {
-        RegisterFunc(name, Function::FromPacked(func), std::forward<Extra>(extra)...);
+        RegisterFunc(name, Function::FromPacked(func), details::TypeSchemaImpl<Function>::v(),
+                     std::forward<Extra>(extra)...);
         return *this;
     }
 
@@ -249,22 +349,24 @@ public:
    */
     template<typename Func, typename... Extra>
     GlobalDef& def_method(const char* name, Func&& func, Extra&&... extra) {
-        RegisterFunc(name, GetMethod(std::string(name), std::forward<Func>(func)), std::forward<Extra>(extra)...);
+        using FuncInfo = details::FunctionInfo<std::decay_t<Func>>;
+        RegisterFunc(name, GetMethod(std::string(name), std::forward<Func>(func)),
+                     FuncInfo::TypeSchema(), std::forward<Extra>(extra)...);
         return *this;
     }
 
 private:
     template<typename... Extra>
-    void RegisterFunc(const char* name, Function func, Extra&&... extra) {
-        TVMFFIMethodInfo info;
+    void RegisterFunc(const char* name, Function func, String type_schema, Extra&&... extra) {
+        MethodInfoBuilder info;
         info.name = TVMFFIByteArray{name, std::char_traits<char>::length(name)};
         info.doc = TVMFFIByteArray{nullptr, 0};
-        info.metadata = TVMFFIByteArray{nullptr, 0};
         info.flags = 0;
-        // obtain the method function
         info.method = AnyView(func).CopyToTVMFFIAny();
-        // apply method info traits
-        (ApplyMethodInfoTrait(&info, std::forward<Extra>(extra)), ...);
+        info.metadata_.emplace_back("type_schema", type_schema);
+        ((ApplyMethodInfoTrait(&info, std::forward<Extra>(extra)), ...));
+        std::string metadata_str = Metadata::ToJSON(info.metadata_);
+        info.metadata = TVMFFIByteArray{metadata_str.c_str(), metadata_str.size()};
         TVM_FFI_CHECK_SAFE_CALL(TVMFFIFunctionSetGlobalFromMethodInfo(&info, 0));
     }
 };
@@ -372,7 +474,7 @@ private:
     template<typename T, typename BaseClass, typename... ExtraArgs>
     void RegisterField(const char* name, T BaseClass::* field_ptr, bool writable, ExtraArgs&&... extra_args) {
         static_assert(std::is_base_of_v<BaseClass, Class>, "BaseClass must be a base class of Class");
-        TVMFFIFieldInfo info;
+        FieldInfoBuilder info;
         info.name = TVMFFIByteArray{name, std::char_traits<char>::length(name)};
         info.field_static_type_index = TypeToFieldStaticTypeIndex<T>::value;
         // store byte offset and setter, getter
@@ -389,20 +491,22 @@ private:
         // initialize default value to nullptr
         info.default_value = AnyView(nullptr).CopyToTVMFFIAny();
         info.doc = TVMFFIByteArray{nullptr, 0};
-        info.metadata = TVMFFIByteArray{nullptr, 0};
+        info.metadata_.emplace_back("type_schema", details::TypeSchema<T>::v());
         // apply field info traits
         (ApplyFieldInfoTrait(&info, std::forward<ExtraArgs>(extra_args)), ...);
         // call register
+        std::string metadata_str = Metadata::ToJSON(info.metadata_);
+        info.metadata = TVMFFIByteArray{metadata_str.c_str(), metadata_str.size()};
         TVM_FFI_CHECK_SAFE_CALL(TVMFFITypeRegisterField(type_index_, &info));
     }
 
     // register a method
     template<typename Func, typename... Extra>
     void RegisterMethod(const char* name, bool is_static, Func&& func, Extra&&... extra) {
-        TVMFFIMethodInfo info;
+        using FuncInfo = details::FunctionInfo<std::decay_t<Func>>;
+        MethodInfoBuilder info;
         info.name = TVMFFIByteArray{name, std::char_traits<char>::length(name)};
         info.doc = TVMFFIByteArray{nullptr, 0};
-        info.metadata = TVMFFIByteArray{nullptr, 0};
         info.flags = 0;
         if (is_static) {
             info.flags |= kTVMFFIFieldFlagBitMaskIsStaticMethod;
@@ -410,8 +514,11 @@ private:
         // obtain the method function
         Function method = GetMethod(std::string(type_key_) + "." + name, std::forward<Func>(func));
         info.method = AnyView(method).CopyToTVMFFIAny();
+        info.metadata_.emplace_back("type_schema", FuncInfo::TypeSchema());
         // apply method info traits
         (ApplyMethodInfoTrait(&info, std::forward<Extra>(extra)), ...);
+        std::string metadata_str = Metadata::ToJSON(info.metadata_);
+        info.metadata = TVMFFIByteArray{metadata_str.c_str(), metadata_str.size()};
         TVM_FFI_CHECK_SAFE_CALL(TVMFFITypeRegisterMethod(type_index_, &info));
     }
 

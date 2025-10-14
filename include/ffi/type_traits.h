@@ -149,6 +149,10 @@ struct TypeTraits<std::nullptr_t> : TypeTraitsBase {
     TVM_FFI_INLINE static std::string TypeStr() {
         return StaticTypeKey::kTVMFFINone;
     }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFINone) + "\"}";
+    }
 };
 
 /**
@@ -204,6 +208,10 @@ struct TypeTraits<StrictBool> : TypeTraitsBase {
     TVM_FFI_INLINE static std::string TypeStr() {
         return StaticTypeKey::kTVMFFIBool;
     }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIBool) + "\"}";
+    }
 };
 
 // Bool type, allow implicit casting from int
@@ -243,6 +251,10 @@ struct TypeTraits<bool> : TypeTraitsBase {
 
     TVM_FFI_INLINE static std::string TypeStr() {
         return StaticTypeKey::kTVMFFIBool;
+    }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIBool) + "\"}";
     }
 };
 
@@ -285,6 +297,10 @@ struct TypeTraits<Int, std::enable_if_t<std::is_integral_v<Int>>> : TypeTraitsBa
     TVM_FFI_INLINE static std::string TypeStr() {
         return StaticTypeKey::kTVMFFIInt;
     }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIInt) + "\"}";
+    }
 };
 
 /// \cond Doxygen_Suppress
@@ -292,10 +308,10 @@ struct TypeTraits<Int, std::enable_if_t<std::is_integral_v<Int>>> : TypeTraitsBa
 // trait to check if a type is an integeral enum
 // note that we need this trait so we can confirm underlying_type_t is an integral type
 // to avoid potential undefined behavior
-template <typename T, bool = std::is_enum_v<T>>
+template<typename T, bool = std::is_enum_v<T>>
 constexpr bool is_integeral_enum_v = false;
 
-template <typename T>
+template<typename T>
 constexpr bool is_integeral_enum_v<T, true> = std::is_integral_v<std::underlying_type_t<T>>;
 
 /// \endcond
@@ -338,6 +354,10 @@ struct TypeTraits<IntEnum, std::enable_if_t<is_integeral_enum_v<IntEnum>>> : Typ
 
     TVM_FFI_INLINE static std::string TypeStr() {
         return StaticTypeKey::kTVMFFIInt;
+    }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIInt) + "\"}";
     }
 };
 
@@ -384,6 +404,10 @@ struct TypeTraits<Float, std::enable_if_t<std::is_floating_point_v<Float>>> : Ty
     TVM_FFI_INLINE static std::string TypeStr() {
         return StaticTypeKey::kTVMFFIFloat;
     }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIFloat) + "\"}";
+    }
 };
 
 // void*
@@ -429,6 +453,10 @@ struct TypeTraits<void*> : TypeTraitsBase {
     TVM_FFI_INLINE static std::string TypeStr() {
         return StaticTypeKey::kTVMFFIOpaquePtr;
     }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIOpaquePtr) + "\"}";
+    }
 };
 
 // Device
@@ -470,6 +498,10 @@ struct TypeTraits<DLDevice> : TypeTraitsBase {
 
     TVM_FFI_INLINE static std::string TypeStr() {
         return StaticTypeKey::kTVMFFIDevice;
+    }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIDevice) + "\"}";
     }
 };
 
@@ -516,6 +548,8 @@ struct TypeTraits<DLTensor*> : TypeTraitsBase {
     TVM_FFI_INLINE static std::string TypeStr() {
         return "DLTensor*";
     }
+
+    TVM_FFI_INLINE static std::string TypeSchema() { return "{\"type\":\"DLTensor*\"}"; }
 };
 
 // Traits for ObjectRef, None to ObjectRef will always fail.
@@ -604,6 +638,10 @@ struct ObjectRefTypeTraitsBase : TypeTraitsBase {
 
     TVM_FFI_INLINE static std::string TypeStr() {
         return ContainerType::_type_key;
+    }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return "{\"type\":\"" + std::string(ContainerType::_type_key) + "\"}";
     }
 };
 
@@ -729,6 +767,10 @@ struct TypeTraits<TObject*, std::enable_if_t<std::is_base_of_v<Object, TObject>>
     TVM_FFI_INLINE static std::string TypeStr() {
         return TObject::_type_key;
     }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return "{\"type\":\"" + std::string(TObject::_type_key) + "\"}";
+    }
 };
 
 template<typename T>
@@ -788,6 +830,10 @@ struct TypeTraits<Optional<T>> : TypeTraitsBase {
 
     TVM_FFI_INLINE static std::string TypeStr() {
         return "Optional<" + TypeTraits<T>::TypeStr() + ">";
+    }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return "{\"type\":\"Optional\",\"args\":[" + details::TypeSchema<T>::v() + "]}";
     }
 };
 }// namespace ffi

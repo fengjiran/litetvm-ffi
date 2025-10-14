@@ -681,6 +681,12 @@ public:
         return std::move(packed_);
     }
 
+    /*!
+   * \brief Get the type schema of `TypedFunction<R(Args...)>` in json format.
+   * \return The type schema of the function in json format.
+   */
+    static std::string TypeSchema() { return details::FuncFunctorImpl<R, Args...>::TypeSchema(); }
+
     /*! \return Whether the packed function is nullptr */
     bool operator==(std::nullptr_t null) const {
         return packed_ == nullptr;
@@ -729,6 +735,10 @@ struct TypeTraits<TypedFunction<FType>> : TypeTraitsBase {
 
     TVM_FFI_INLINE static std::string TypeStr() {
         return details::FunctionInfo<FType>::Sig();
+    }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return TypedFunction<FType>::TypeSchema();
     }
 };
 

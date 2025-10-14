@@ -12,6 +12,7 @@
 #include "ffi/type_traits.h"
 
 #include <cstring>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -21,6 +22,18 @@
 // core component for return string handling.
 // The following dependency relation holds
 // any -> string -> objec
+
+/// \cond Doxygen_Suppress
+#ifdef _MSC_VER
+#define TVM_FFI_SNPRINTF _snprintf_s
+#pragma warning(push)
+#pragma warning(disable : 4244)
+#pragma warning(disable : 4127)
+#pragma warning(disable : 4702)
+#else
+#define TVM_FFI_SNPRINTF snprintf
+#endif
+/// \endcond
 namespace litetvm {
 namespace ffi {
 namespace details {
@@ -35,8 +48,8 @@ class BytesObjBase : public Object, public TVMFFIByteArray {};
  */
 class BytesObj : public BytesObjBase {
 public:
-    static constexpr const uint32_t _type_index = TypeIndex::kTVMFFIBytes;
-    static const constexpr bool _type_final = true;
+    static constexpr uint32_t _type_index = kTVMFFIBytes;
+    static constexpr bool _type_final = true;
     TVM_FFI_DECLARE_OBJECT_INFO_STATIC(StaticTypeKey::kTVMFFIBytes, BytesObj, Object);
 };
 
@@ -82,13 +95,13 @@ public:
     }
 
     BytesBaseCell(const BytesBaseCell& other) : data_(other.data_) {// NOLINT(*)
-        if (data_.type_index >= TypeIndex::kTVMFFIStaticObjectBegin) {
-            details::ObjectUnsafe::IncRefObjectHandle(data_.v_obj);
+        if (data_.type_index >= kTVMFFIStaticObjectBegin) {
+            ObjectUnsafe::IncRefObjectHandle(data_.v_obj);
         }
     }
 
-    BytesBaseCell(BytesBaseCell&& other) : data_(other.data_) {// NOLINT(*)
-        other.data_.type_index = TypeIndex::kTVMFFINone;
+    BytesBaseCell(BytesBaseCell&& other) noexcept : data_(other.data_) {// NOLINT(*)
+        other.data_.type_index = kTVMFFINone;
     }
 
     BytesBaseCell& operator=(const BytesBaseCell& other) {
@@ -96,14 +109,14 @@ public:
         return *this;
     }
 
-    BytesBaseCell& operator=(BytesBaseCell&& other) {
+    BytesBaseCell& operator=(BytesBaseCell&& other) noexcept {
         BytesBaseCell(std::move(other)).swap(*this);// NOLINT(*)
         return *this;
     }
 
     ~BytesBaseCell() {
-        if (data_.type_index >= TypeIndex::kTVMFFIStaticObjectBegin) {
-            details::ObjectUnsafe::DecRefObjectHandle(data_.v_obj);
+        if (data_.type_index >= kTVMFFIStaticObjectBegin) {
+            ObjectUnsafe::DecRefObjectHandle(data_.v_obj);
         }
     }
 
@@ -111,36 +124,34 @@ public:
      * \brief Check if the cell is null
      * \return true if the cell is null, false otherwise
      */
-    bool operator==(std::nullopt_t) const { return data_.type_index == TypeIndex::kTVMFFINone; }
+    bool operator==(std::nullopt_t) const { return data_.type_index == kTVMFFINone; }
 
     /*!
      * \brief Check if the cell is not null
      * \return true if the cell is not null, false otherwise
      */
-    bool operator!=(std::nullopt_t) const { return data_.type_index != TypeIndex::kTVMFFINone; }
+    bool operator!=(std::nullopt_t) const { return data_.type_index != kTVMFFINone; }
 
     /*!
      * \brief Swap this String with another string
      * \param other The other string
      */
-    void swap(BytesBaseCell& other) {// NOLINT(*)
+    void swap(BytesBaseCell& other) noexcept {// NOLINT(*)
         std::swap(data_, other.data_);
     }
 
     const char* data() const noexcept {
-        if (data_.type_index < TypeIndex::kTVMFFIStaticObjectBegin) {
+        if (data_.type_index < kTVMFFIStaticObjectBegin) {
             return data_.v_bytes;
-        } else {
-            return TVMFFIBytesGetByteArrayPtr(data_.v_obj)->data;
         }
+        return TVMFFIBytesGetByteArrayPtr(data_.v_obj)->data;
     }
 
     size_t size() const noexcept {
-        if (data_.type_index < TypeIndex::kTVMFFIStaticObjectBegin) {
+        if (data_.type_index < kTVMFFIStaticObjectBegin) {
             return data_.small_str_len;
-        } else {
-            return TVMFFIBytesGetByteArrayPtr(data_.v_obj)->size;
         }
+        return TVMFFIBytesGetByteArrayPtr(data_.v_obj)->size;
     }
 
     template<typename LargeObj>
@@ -150,7 +161,7 @@ public:
         data_.zero_padding = 0;
         TVM_FFI_CLEAR_PTR_PADDING_IN_FFI_ANY(&data_);
         ObjectPtr<LargeObj> ptr = make_object<BytesObjStdImpl<LargeObj>>(std::move(other));
-        data_.v_obj = details::ObjectUnsafe::MoveObjectPtrToTVMFFIObjectPtr(std::move(ptr));
+        data_.v_obj = ObjectUnsafe::MoveObjectPtrToTVMFFIObjectPtr(std::move(ptr));
         data_.type_index = large_type_index;
     }
 
@@ -172,25 +183,24 @@ public:
             // set up the size accordingly
             data_.small_str_len = static_cast<uint32_t>(size);
             return data_.v_bytes;
-        } else {
-            // allocate from heap
-            ObjectPtr<LargeObj> ptr = make_inplace_array_object<LargeObj, char>(size + 1);
-            char* dest_data = reinterpret_cast<char*>(ptr.get()) + sizeof(LargeObj);
-            ptr->data = dest_data;
-            ptr->size = size;
-            TVM_FFI_CLEAR_PTR_PADDING_IN_FFI_ANY(&data_);
-            data_.v_obj = details::ObjectUnsafe::MoveObjectPtrToTVMFFIObjectPtr(std::move(ptr));
-            // now reset the type index to str
-            data_.type_index = large_type_index;
-            return dest_data;
         }
+        // allocate from heap
+        ObjectPtr<LargeObj> ptr = make_inplace_array_object<LargeObj, char>(size + 1);
+        char* dest_data = reinterpret_cast<char*>(ptr.get()) + sizeof(LargeObj);
+        ptr->data = dest_data;
+        ptr->size = size;
+        TVM_FFI_CLEAR_PTR_PADDING_IN_FFI_ANY(&data_);
+        data_.v_obj = ObjectUnsafe::MoveObjectPtrToTVMFFIObjectPtr(std::move(ptr));
+        // now reset the type index to str
+        data_.type_index = large_type_index;
+        return dest_data;
     }
 
     void InitTypeIndex(int32_t type_index) { data_.type_index = type_index; }
 
     void MoveToAny(TVMFFIAny* result) {
         *result = data_;
-        data_.type_index = TypeIndex::kTVMFFINone;
+        data_.type_index = kTVMFFINone;
         data_.zero_padding = 0;
         data_.v_int64 = 0;
     }
@@ -199,8 +209,8 @@ public:
 
     static BytesBaseCell CopyFromAnyView(const TVMFFIAny* src) {
         BytesBaseCell result(*src);
-        if (result.data_.type_index >= TypeIndex::kTVMFFIStaticObjectBegin) {
-            details::ObjectUnsafe::IncRefObjectHandle(result.data_.v_obj);
+        if (result.data_.type_index >= kTVMFFIStaticObjectBegin) {
+            ObjectUnsafe::IncRefObjectHandle(result.data_.v_obj);
         }
         return result;
     }
@@ -261,7 +271,7 @@ public:
      * \brief Swap this String with another string
      * \param other The other string
      */
-    void swap(Bytes& other) {// NOLINT(*)
+    void swap(Bytes& other) noexcept {// NOLINT(*)
         std::swap(data_, other.data_);
     }
 
@@ -339,8 +349,7 @@ private:
     // create a new String from TVMFFIAny, must keep private
     explicit Bytes(details::BytesBaseCell data) : data_(data) {}
     char* InitSpaceForSize(size_t size) {
-        return data_.InitSpaceForSize<details::BytesObj>(size, TypeIndex::kTVMFFISmallBytes,
-                                                         TypeIndex::kTVMFFIBytes);
+        return data_.InitSpaceForSize<details::BytesObj>(size, kTVMFFISmallBytes,kTVMFFIBytes);
     }
     void InitData(const char* data, size_t size) {
         char* dest_data = InitSpaceForSize(size);
@@ -362,7 +371,7 @@ public:
     /*!
      * \brief constructor
      */
-    String() { data_.InitTypeIndex(TypeIndex::kTVMFFISmallStr); }
+    String() { data_.InitTypeIndex(kTVMFFISmallStr); }
     // constructors from Any
     String(const String& other) = default;           // NOLINT(*)
     String(String&& other) = default;                // NOLINT(*)
@@ -609,6 +618,52 @@ private:
     friend String operator+(const char* lhs, const String& rhs);
 };
 
+/*!
+ * \brief Return an escaped version of the string
+ * \param value The input string
+ * \return The escaped string, quoted with double quotes
+ */
+inline String EscapeString(const String& value) {
+    std::ostringstream oss;
+    oss << '"';
+    const char* data = value.data();
+    const size_t size = value.size();
+    for (size_t i = 0; i < size; ++i) {
+        switch (data[i]) {
+            /// \cond Doxygen_Suppress
+#define TVM_FFI_ESCAPE_CHAR(pattern, val) \
+    case pattern:                         \
+        oss << val;                       \
+        break
+            TVM_FFI_ESCAPE_CHAR('\"', "\\\"");
+            TVM_FFI_ESCAPE_CHAR('\\', "\\\\");
+            TVM_FFI_ESCAPE_CHAR('/', "\\/");
+            TVM_FFI_ESCAPE_CHAR('\b', "\\b");
+            TVM_FFI_ESCAPE_CHAR('\f', "\\f");
+            TVM_FFI_ESCAPE_CHAR('\n', "\\n");
+            TVM_FFI_ESCAPE_CHAR('\r', "\\r");
+            TVM_FFI_ESCAPE_CHAR('\t', "\\t");
+#undef TVM_FFI_ESCAPE_CHAR
+            /// \endcond
+            default: {
+                uint8_t u8_val = static_cast<uint8_t>(data[i]);
+                // this is a control character, print as \uXXXX
+                if (u8_val < 0x20 || u8_val == 0x7f) {
+                    char buffer[8];
+                    int sz = TVM_FFI_SNPRINTF(buffer, sizeof(buffer), "\\u%04x",
+                                              static_cast<int32_t>(data[i]) & 0xff);
+                    oss.write(buffer, sz);
+                } else {
+                    oss << data[i];
+                }
+                break;
+            }
+        }
+    }
+    oss << '"';
+    return String(oss.str());
+}
+
 /*! \brief Convert TVMFFIByteArray to std::string_view */
 TVM_FFI_INLINE std::string_view ToStringView(TVMFFIByteArray str) {
     return std::string_view(str.data, str.size);
@@ -632,8 +687,7 @@ struct TypeTraits<Bytes> : public TypeTraitsBase {
     }
 
     TVM_FFI_INLINE static bool CheckAnyStrict(const TVMFFIAny* src) {
-        return src->type_index == TypeIndex::kTVMFFISmallBytes ||
-               src->type_index == TypeIndex::kTVMFFIBytes;
+        return src->type_index == kTVMFFISmallBytes || src->type_index == kTVMFFIBytes;
     }
 
     TVM_FFI_INLINE static Bytes CopyFromAnyViewAfterCheck(const TVMFFIAny* src) {
@@ -655,7 +709,13 @@ struct TypeTraits<Bytes> : public TypeTraitsBase {
         return std::nullopt;
     }
 
-    TVM_FFI_INLINE static std::string TypeStr() { return "bytes"; }
+    TVM_FFI_INLINE static std::string TypeStr() {
+        return "bytes";
+    }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIBytes) + "\"}";
+    }
 };
 
 template<>
@@ -698,7 +758,13 @@ struct TypeTraits<String> : public TypeTraitsBase {
         return std::nullopt;
     }
 
-    TVM_FFI_INLINE static std::string TypeStr() { return "str"; }
+    TVM_FFI_INLINE static std::string TypeStr() {
+        return "str";
+    }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIStr) + "\"}";
+    }
 };
 
 
@@ -744,6 +810,7 @@ struct TypeTraits<const char*> : public TypeTraitsBase {
     }
 
     TVM_FFI_INLINE static std::string TypeStr() { return "const char*"; }
+    TVM_FFI_INLINE static std::string TypeSchema() { return "{\"type\":\"const char*\"}"; }
 };
 
 // TVMFFIByteArray, requirement: not nullable, do not retain ownership
@@ -772,6 +839,9 @@ struct TypeTraits<TVMFFIByteArray*> : public TypeTraitsBase {
     }
 
     TVM_FFI_INLINE static std::string TypeStr() { return StaticTypeKey::kTVMFFIByteArrayPtr; }
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIByteArrayPtr) + "\"}";
+    }
 };
 
 template<>
@@ -792,6 +862,7 @@ struct TypeTraits<std::string>
     }
 
     TVM_FFI_INLINE static std::string TypeStr() { return "std::string"; }
+    TVM_FFI_INLINE static std::string TypeSchema() { return "{\"type\":\"std::string\"}"; }
 
     TVM_FFI_INLINE static std::string ConvertFallbackValue(const char* src) {
         return std::string(src);

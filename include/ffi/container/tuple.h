@@ -243,6 +243,15 @@ struct TypeTraits<Tuple<Types...>> : ObjectRefTypeTraitsBase<Tuple<Types...>> {
     TVM_FFI_INLINE static std::string TypeStr() {
         return details::ContainerTypeStr<Types...>("Tuple");
     }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        std::ostringstream oss;
+        oss << "{\"type\":\"Tuple\",\"args\":[";
+        const char* sep = "";
+        ((oss << sep << details::TypeSchema<Types>::v(), sep = ","), ...);
+        oss << "]}";
+        return oss.str();
+    }
 };
 
 namespace details {

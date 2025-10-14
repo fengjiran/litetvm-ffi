@@ -226,7 +226,7 @@ public:
     }
 
     // Information about the object
-    static constexpr const char* _type_key = "object.Object";
+    static constexpr const char* _type_key = StaticTypeKey::kTVMFFIObject;
 
     // Default object type properties for sub-classes
     static constexpr bool _type_final = false;

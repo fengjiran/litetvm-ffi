@@ -205,5 +205,12 @@ TVM_FFI_STATIC_INIT_BLOCK() {
                      return litetvm::ffi::Function::FromTyped(return_functor);
                  })
             .def("ffi.String", [](litetvm::ffi::String val) -> litetvm::ffi::String { return val; })
-            .def("ffi.Bytes", [](litetvm::ffi::Bytes val) -> litetvm::ffi::Bytes { return val; });
+            .def("ffi.Bytes", [](litetvm::ffi::Bytes val) -> litetvm::ffi::Bytes { return val; })
+            .def("ffi.GetGlobalFuncMetadata", [](litetvm::ffi::String name) -> litetvm::ffi::String {
+                const auto* f = litetvm::ffi::GlobalFunctionTable::Global()->Get(name);
+                if (f == nullptr) {
+                    TVM_FFI_THROW(RuntimeError) << "Global Function is not found: " << name;
+                }
+                return f->metadata_data;
+            });
 }
