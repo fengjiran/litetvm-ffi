@@ -21,18 +21,23 @@ struct TestObjA : Object {
     int64_t x;
     int64_t y;
 
+    TestObjA(int64_t x, int64_t y) : x(x), y(y) {}
     static constexpr bool _type_mutable = true;
     TVM_FFI_DECLARE_OBJECT_INFO("test.TestObjA", TestObjA, Object);
 };
 
 struct TestObjADerived : TestObjA {
     int64_t z;
-
+    TestObjADerived(int64_t x, int64_t y, int64_t z) : TestObjA(x, y), z(z) {}
     TVM_FFI_DECLARE_OBJECT_INFO_FINAL("test.TestObjADerived", TestObjADerived, TestObjA);
 };
 
+struct TestObjRefADerived : ObjectRef {
+    TVM_FFI_DEFINE_OBJECT_REF_METHODS_NULLABLE(TestObjRefADerived, ObjectRef, TestObjADerived);
+};
+
 TVM_FFI_STATIC_INIT_BLOCK() {
-    namespace refl = litetvm::ffi::reflection;
+    namespace refl = reflection;
 
     TIntObj::RegisterReflection();
     TFloatObj::RegisterReflection();
@@ -41,8 +46,13 @@ TVM_FFI_STATIC_INIT_BLOCK() {
     TFuncObj::RegisterReflection();
     TCustomFuncObj::RegisterReflection();
 
-    refl::ObjectDef<TestObjA>().def_ro("x", &TestObjA::x).def_rw("y", &TestObjA::y);
-    refl::ObjectDef<TestObjADerived>().def_ro("z", &TestObjADerived::z);
+    refl::ObjectDef<TestObjA>()
+            .def_static("__ffi_init__", refl::init<TestObjA, int64_t, int64_t>)
+            .def_ro("x", &TestObjA::x)
+            .def_rw("y", &TestObjA::y);
+    refl::ObjectDef<TestObjADerived>()
+            .def_static("__ffi_init__", refl::init<TestObjRefADerived, int64_t, int64_t, int64_t>)
+            .def_ro("z", &TestObjADerived::z);
 }
 
 TEST(Reflection, GetFieldByteOffset) {
@@ -115,6 +125,23 @@ TEST(Reflection, CallMethod) {
 
     Function prim_expr_sub = reflection::GetMethod("test.PrimExpr", "sub");
     EXPECT_EQ(prim_expr_sub(TPrimExpr("float", 1), 2.0).cast<double>(), -1.0);
+}
+
+TEST(Reflection, InitFunction_Base) {
+    Function int_init = reflection::GetMethod("test.TestObjA", "__ffi_init__");
+    Any obj_a = int_init(1, 2);
+    EXPECT_TRUE(obj_a.as<TestObjA>() != nullptr);
+    EXPECT_EQ(obj_a.as<TestObjA>()->x, 1);
+    EXPECT_EQ(obj_a.as<TestObjA>()->y, 2);
+}
+
+TEST(Reflection, InitFunction_Derived) {
+    Function derived_init = reflection::GetMethod("test.TestObjADerived", "__ffi_init__");
+    Any obj_derived = derived_init(1, 2, 3);
+    EXPECT_TRUE(obj_derived.as<TestObjADerived>() != nullptr);
+    EXPECT_EQ(obj_derived.as<TestObjADerived>()->x, 1);
+    EXPECT_EQ(obj_derived.as<TestObjADerived>()->y, 2);
+    EXPECT_EQ(obj_derived.as<TestObjADerived>()->z, 3);
 }
 
 TEST(Reflection, ForEachFieldInfo) {
