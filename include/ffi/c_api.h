@@ -213,7 +213,9 @@ struct TVMFFIObject {
     uint32_t weak_ref_count;
     /*! \brief Strong reference counter of the object. */
     uint64_t strong_ref_count;
+#if !defined(TVM_FFI_DOXYGEN_MODE)
     union {
+#endif
         /*!
          * \brief Deleter to be invoked when strong reference counter goes to zero.
          * \param self The self object handle.
@@ -226,7 +228,9 @@ struct TVMFFIObject {
          * \note This helps us to ensure cross platform compatibility.
          */
         int64_t __ensure_align;
+#if !defined(TVM_FFI_DOXYGEN_MODE)
     };
+#endif
 };
 
 /*!
@@ -241,7 +245,9 @@ struct TVMFFIAny {
    * \note The type index of Object and Any are shared in FFI.
    */
     int32_t type_index;
+#if !defined(TVM_FFI_DOXYGEN_MODE)
     union {// 4 bytes
+#endif
         /*! \brief must set to zero for values other than small string. */
         uint32_t zero_padding;
         /*!
@@ -251,9 +257,13 @@ struct TVMFFIAny {
      * when accessing the small str content.
      */
         uint32_t small_str_len;
+#if !defined(TVM_FFI_DOXYGEN_MODE)
     };
+#endif
 
-    union {                 // 8 bytes
+#if !defined(TVM_FFI_DOXYGEN_MODE)
+    union {// 8 bytes
+#endif
         int64_t v_int64;    // integers
         double v_float64;   // floating-point numbers
         void* v_ptr;        // typeless pointers
@@ -263,7 +273,9 @@ struct TVMFFIAny {
         DLDevice v_device;  // device
         char v_bytes[8];    // small string
         uint64_t v_uint64;  // uint64 repr mainly used for hashing
+#if !defined(TVM_FFI_DOXYGEN_MODE)
     };
+#endif
 };
 
 /*!
@@ -291,6 +303,23 @@ struct TVMFFIShapeCell {
 };
 
 /*!
+ * \brief Mode to update the backtrace of the error.
+ */
+#ifdef __cplusplus
+enum TVMFFIBacktraceUpdateMode : int32_t {
+#else
+typedef enum {
+#endif
+    kTVMFFIBacktraceUpdateModeReplace = 0,
+    kTVMFFIBacktraceUpdateModeAppend = 1,
+#ifdef __cplusplus
+};
+#else
+} TVMFFIBacktraceUpdateMode;
+#endif
+
+
+/*!
  * \brief Error cell used in error object following header.
  */
 struct TVMFFIErrorCell {
@@ -299,15 +328,26 @@ struct TVMFFIErrorCell {
     /*! \brief The message of the error. */
     TVMFFIByteArray message;
     /*!
-   * \brief The traceback of the error.
+   * \brief The backtrace of the error.
+   *
+   * The backtrace is in the order of recent call first from the top of the stack
+   * to the bottom of the stack. This order makes it helpful for appending
+   * the extra backtrace to the end as we go up when error is propagated.
+   *
+   * When printing out, we encourage reverse the order of lines to make it
+   * align with python style.
    */
-    TVMFFIByteArray traceback;
+    TVMFFIByteArray backtrace;
+
     /*!
-   * \brief Function handle to update the traceback of the error.
+   * \brief Function handle to update the backtrace of the error.
    * \param self The self object handle.
-   * \param traceback The traceback to update.
+   * \param backtrace The backtrace to update.
+   * \param update_mode The mode to update the backtrace,
+   *        can be either kTVMFFIBacktraceUpdateModeReplace, kTVMFFIBacktraceUpdateModeAppend.
    */
-    void (*update_traceback)(TVMFFIObjectHandle self, const TVMFFIByteArray* traceback);
+    void (*update_backtrace)(TVMFFIObjectHandle self, const TVMFFIByteArray* backtrace,
+                             int32_t update_mode);
 };
 
 /*!
@@ -478,17 +518,21 @@ TVM_FFI_DLL void TVMFFIErrorSetRaised(TVMFFIObjectHandle error);
 TVM_FFI_DLL void TVMFFIErrorSetRaisedFromCStr(const char* kind, const char* message);
 
 /*!
-     * \brief Create an initial error object.
-     * \param kind The kind of the error.
-     * \param message The error message.
-     * \param traceback The traceback of the error.
-     * \return The created error object handle.
-     * \note This function is different from other functions as it is used in the error handling loop.
-     * So we do not follow normal error handling patterns via returning an error code.
-     */
-TVM_FFI_DLL TVMFFIObjectHandle TVMFFIErrorCreate(const TVMFFIByteArray* kind,
-                                                 const TVMFFIByteArray* message,
-                                                 const TVMFFIByteArray* traceback);
+ * \brief Create an initial error object.
+ * \param kind The kind of the error.
+ * \param message The error message.
+ * \param backtrace The backtrace of the error.
+ * \param out The output error object handle.
+ * \return 0 on success, nonzero on failure(likely MemoryError)
+ *
+ * \note This function is different from other functions as it is used in the error handling loop.
+ *       So we do not follow normal error handling patterns. When error happens it will not set
+ *       the error in TLS (since TLS error setting also involves creating an Error object).
+ *       Instead, caller should simply report MemoryError to the logger.
+ */
+TVM_FFI_DLL int TVMFFIErrorCreate(const TVMFFIByteArray* kind, const TVMFFIByteArray* message,
+                                  const TVMFFIByteArray* backtrace, TVMFFIObjectHandle* out);
+
 
 //------------------------------------------------------------
 // Section: DLPack support APIs

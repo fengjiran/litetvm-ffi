@@ -501,6 +501,7 @@ inline void EnsureTypeAttrColumn(std::string_view name) {
  *   };
  *   refl::ObjectDef<ExampleObject>()
  *      .def_static("__init__", refl::init<ExampleObject, int64_t, int32_t>);
+ * \endcode
  */
 template<typename T, typename... Args>
 ObjectRef init(Args&&... args) {

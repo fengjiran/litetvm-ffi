@@ -70,9 +70,54 @@ public:
     TVM_FFI_DECLARE_OBJECT_INFO_FINAL("testing.TestObjectDerived", TestObjectDerived, TestObjectBase);
 };
 
+class TestCxxClassBase : public Object {
+public:
+    int64_t v_i64;
+    int32_t v_i32;
+
+    TestCxxClassBase(int64_t v_i64, int32_t v_i32) : v_i64(v_i64), v_i32(v_i32) {}
+
+    static constexpr bool _type_mutable = true;
+    TVM_FFI_DECLARE_OBJECT_INFO("testing.TestCxxClassBase", TestCxxClassBase, Object);
+};
+
+class TestCxxClassDerived : public TestCxxClassBase {
+public:
+    double v_f64;
+    float v_f32;
+
+    TestCxxClassDerived(int64_t v_i64, int32_t v_i32, double v_f64, float v_f32)
+        : TestCxxClassBase(v_i64, v_i32), v_f64(v_f64), v_f32(v_f32) {}
+
+    TVM_FFI_DECLARE_OBJECT_INFO("testing.TestCxxClassDerived", TestCxxClassDerived, TestCxxClassBase);
+};
+
+class TestCxxClassDerivedDerived : public TestCxxClassDerived {
+public:
+    String v_str;
+    bool v_bool;
+
+    TestCxxClassDerivedDerived(int64_t v_i64, int32_t v_i32, double v_f64, float v_f32, String v_str,
+                               bool v_bool)
+        : TestCxxClassDerived(v_i64, v_i32, v_f64, v_f32), v_str(v_str), v_bool(v_bool) {}
+
+    TVM_FFI_DECLARE_OBJECT_INFO("testing.TestCxxClassDerivedDerived", TestCxxClassDerivedDerived,
+                                TestCxxClassDerived);
+};
+
+class TestUnregisteredObject : public Object {
+public:
+    int64_t value;
+
+    explicit TestUnregisteredObject(int64_t value) : value(value) {}
+
+    TVM_FFI_DECLARE_OBJECT_INFO("testing.TestUnregisteredObject", TestUnregisteredObject, Object);
+};
+
 void TestRaiseError(String kind, String msg) {
-    throw ffi::Error(kind, msg, TVM_FFI_TRACEBACK_HERE);
+    throw Error(kind, msg, TVM_FFI_TRACEBACK_HERE);
 }
+
 TVM_FFI_NO_INLINE void TestApply(PackedArgs args, Any* ret) {
     // keep name and no liner for testing traceback
     auto f = args[0].cast<Function>();
@@ -80,7 +125,7 @@ TVM_FFI_NO_INLINE void TestApply(PackedArgs args, Any* ret) {
 }
 
 TVM_FFI_STATIC_INIT_BLOCK() {
-    namespace refl = litetvm::ffi::reflection;
+    namespace refl = reflection;
 
     refl::ObjectDef<TestObjectBase>()
             .def_rw("v_i64", &TestObjectBase::v_i64, refl::DefaultValue(10), "i64 field")
@@ -107,7 +152,9 @@ TVM_FFI_STATIC_INIT_BLOCK() {
                      }
                      std::cout << "Function finished without catching signal" << std::endl;
                  })
-            .def("testing.object_use_count", [](const Object* obj) { return obj->use_count(); });
+            .def("testing.object_use_count", [](const Object* obj) { return obj->use_count(); })
+            .def("testing.make_unregistered_object",
+                 [] { return ObjectRef(make_object<TestUnregisteredObject>(42)); });
 }
 
 }// namespace ffi

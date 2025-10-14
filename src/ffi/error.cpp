@@ -48,14 +48,18 @@ void TVMFFIErrorMoveFromRaised(TVMFFIObjectHandle* result) {
     litetvm::ffi::SafeCallContext::ThreadLocal()->MoveFromRaised(result);
 }
 
-TVMFFIObjectHandle TVMFFIErrorCreate(const TVMFFIByteArray* kind, const TVMFFIByteArray* message,
-                                     const TVMFFIByteArray* traceback) {
+int TVMFFIErrorCreate(const TVMFFIByteArray* kind, const TVMFFIByteArray* message,
+                      const TVMFFIByteArray* backtrace, TVMFFIObjectHandle* out) {
+    // log other errors to the logger
     TVM_FFI_LOG_EXCEPTION_CALL_BEGIN();
-    litetvm::ffi::Error error(std::string(kind->data, kind->size),
-                          std::string(message->data, message->size),
-                          std::string(traceback->data, traceback->size));
-    TVMFFIObjectHandle out =
-            litetvm::ffi::details::ObjectUnsafe::MoveObjectRefToTVMFFIObjectPtr(std::move(error));
-    return out;
+    try {
+        litetvm::ffi::Error error(std::string(kind->data, kind->size),
+                                  std::string(message->data, message->size),
+                                  std::string(backtrace->data, backtrace->size));
+        *out = litetvm::ffi::details::ObjectUnsafe::MoveObjectRefToTVMFFIObjectPtr(std::move(error));
+        return 0;
+    } catch (const std::bad_alloc& e) {
+        return -1;
+    }
     TVM_FFI_LOG_EXCEPTION_CALL_END(TVMFFIErrorCreate);
 }

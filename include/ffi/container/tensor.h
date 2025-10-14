@@ -364,7 +364,7 @@ public:
         ErrorContext error_context;
         int ret = (*allocator)(&prototype, &tensor, &error_context, ErrorContext::SetError);
         if (ret != 0) {
-            throw ffi::Error(error_context.kind, error_context.message,
+            throw Error(error_context.kind, error_context.message,
                              TVMFFITraceback(__FILE__, __LINE__, __func__));
         }
         return Tensor(make_object<details::TensorObjFromDLPack<DLManagedTensorVersioned>>(tensor));
