@@ -63,6 +63,8 @@ struct StaticTypeKey {
     static constexpr const char* kTVMFFIArray = "ffi.Array";
     static constexpr const char* kTVMFFIMap = "ffi.Map";
     static constexpr const char* kTVMFFIModule = "ffi.Module";
+    /*! \brief The type key for OpaquePyObject */
+    static constexpr const char* kTVMFFIOpaquePyObject = "ffi.OpaquePyObject";
 };
 
 /*!
@@ -1046,7 +1048,7 @@ TVM_FFI_INLINE bool IsObjectInstance(int32_t object_type_index) {
             // the function checks that the info exists
             const TypeInfo* type_info = TVMFFIGetTypeInfo(object_type_index);
             return (type_info->type_depth > TargetType::_type_depth &&
-                    type_info->type_acenstors[TargetType::_type_depth]->type_index == target_type_index);
+                    type_info->type_ancestors[TargetType::_type_depth]->type_index == target_type_index);
         } else {
             return false;
         }

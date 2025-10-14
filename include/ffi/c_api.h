@@ -912,10 +912,10 @@ typedef struct TVMFFITypeInfo {
     TVMFFIByteArray type_key;
 
     /*!
-     * \brief type_acenstors[depth] stores the type_index of the acenstors at depth level
+     * \brief type_ancestors[depth] stores the type_index of the acenstors at depth level
      * \note To keep things simple, we do not allow multiple inheritance so the hieracy stays as a tree
      */
-    const TVMFFITypeInfo** type_acenstors;
+    const TVMFFITypeInfo** type_ancestors;
 
     /*! \brief Cached hash value of the type key, used for consistent structural hashing. */
     uint64_t type_key_hash;

@@ -290,8 +290,8 @@ public:
    *
    * \return The reflection definition.
    */
-    template<typename T, typename... Extra>
-    TVM_FFI_INLINE ObjectDef& def_ro(const char* name, T Class::* field_ptr, Extra&&... extra) {
+    template<typename T, typename BaseClass, typename... Extra>
+    TVM_FFI_INLINE ObjectDef& def_ro(const char* name, T BaseClass::* field_ptr, Extra&&... extra) {
         RegisterField(name, field_ptr, false, std::forward<Extra>(extra)...);
         return *this;
     }
