@@ -43,7 +43,7 @@ int TestDLPackTensorAllocatorError(DLTensor* prototype, DLManagedTensorVersioned
 }
 
 TEST(Tensor, Basic) {
-    Tensor nd = Empty(Shape({1, 2, 3}), DLDataType({kDLFloat, 32, 1}), DLDevice({kDLCPU, 0}));
+    Tensor nd = Empty({1, 2, 3}, DLDataType({kDLFloat, 32, 1}), DLDevice({kDLCPU, 0}));
     Shape shape = nd.shape();
     EXPECT_EQ(shape.size(), 3);
     EXPECT_EQ(shape[0], 1);
@@ -54,10 +54,12 @@ TEST(Tensor, Basic) {
         static_cast<float*>(nd->data)[i] = static_cast<float>(i);
     }
 
+    EXPECT_EQ(nd.numel(), 6);
+    EXPECT_EQ(nd.ndim(), 3);
+    EXPECT_EQ(nd.data_ptr(), nd->data);
+
     Any any0 = nd;
     Tensor nd2 = any0.as<Tensor>().value();
-    EXPECT_EQ(nd2.shape(), shape);
-    EXPECT_EQ(nd2.dtype(), DLDataType({kDLFloat, 32, 1}));
     for (int64_t i = 0; i < shape.Product(); ++i) {
         EXPECT_EQ(static_cast<float*>(nd2->data)[i], i);
     }
@@ -141,11 +143,11 @@ TEST(Tensor, DLPackAlloc) {
 TEST(Tensor, DLPackAllocError) {
     // Test error handling in DLPackAlloc
     EXPECT_THROW(
-        {
-          Tensor::FromDLPackAlloc(TestDLPackTensorAllocatorError, {1, 2, 3},
-                                  DLDataType({kDLFloat, 32, 1}), DLDevice({kDLCPU, 0}));
-        },
-        litetvm::ffi::Error);
+            {
+                Tensor::FromDLPackAlloc(TestDLPackTensorAllocatorError, {1, 2, 3},
+                                        DLDataType({kDLFloat, 32, 1}), DLDevice({kDLCPU, 0}));
+            },
+            litetvm::ffi::Error);
 }
 
 }// namespace
