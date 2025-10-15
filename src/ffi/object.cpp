@@ -328,7 +328,13 @@ private:
         ReserveBuiltinTypeIndex(StaticTypeKey::kTVMFFIObjectRValueRef, kTVMFFIObjectRValueRef);
         ReserveBuiltinTypeIndex(StaticTypeKey::kTVMFFISmallStr, kTVMFFISmallStr);
         ReserveBuiltinTypeIndex(StaticTypeKey::kTVMFFISmallBytes, kTVMFFISmallBytes);
-        ReserveBuiltinTypeIndex(StaticTypeKey::kTVMFFIOpaquePyObject, kTVMFFIOpaquePyObject);
+        // register opaque py whose type depth is 1
+        this->GetOrAllocTypeIndex(StaticTypeKey::kTVMFFIOpaquePyObject,
+                                  TypeIndex::kTVMFFIOpaquePyObject,
+                                  /*type_depth=*/1,
+                                  /*num_child_slots=*/0,
+                                  /*child_slots_can_overflow=*/false,
+                                  /*parent_type_index=*/TypeIndex::kTVMFFIObject);
         // no need to reserve for object types as they will be registered
     }
 

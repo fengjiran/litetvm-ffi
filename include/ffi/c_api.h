@@ -396,6 +396,7 @@ struct TVMFFIErrorCell {
  * \sa TVMFFIErrorMoveFromRaised
  * \sa TVMFFIErrorSetRaised
  * \sa TVMFFIErrorSetRaisedFromCStr
+ * \sa TVMFFIErrorSetRaisedFromCStrParts
  */
 using TVMFFISafeCallType = int (*)(void* handle, const TVMFFIAny* args, int32_t num_args, TVMFFIAny* result);
 
@@ -544,6 +545,32 @@ TVM_FFI_DLL void TVMFFIErrorSetRaised(TVMFFIObjectHandle error);
      * \note This is a convenient method for the C API side to set an error directly from a string.
      */
 TVM_FFI_DLL void TVMFFIErrorSetRaisedFromCStr(const char* kind, const char* message);
+
+/*!
+ * \brief Set a raised error in TLS, which can be fetched by TVMFFIErrorMoveFromRaised.
+ *
+ * Rationale: This function can be used by compilers to create error messages by
+ * concatenating multiple parts of the error message, which can reduce the
+ * storage size for common parts such as function signatures.
+ *
+ * For example, the following are possible error messages from a kernel DSL
+ *
+ * - Argument 1 mismatch in `matmul(x: Tensor, y: Tensor, z: Tensor)`, dtype mismatch
+ * - Argument 2 mismatch in `matmul(x: Tensor, y: Tensor, z: Tensor)`, shape[0] mismatch
+ * - Argument 2 mismatch in `matmul(x: Tensor, y: Tensor, z: Tensor)`, shape[1] mismatch
+ *
+ * Storing each part of the error message as a separate global string can cause quite
+ * a bit of duplication, especially considering the kinds of error reports we may have.
+ * Instead, compilers can store error messages in parts, where items like
+ * `matmul(x: Tensor, y: Tensor, z: Tensor)` can be reused across multiple error messages.
+ * This API simplifies error reporting for such cases.
+ *
+ * \param kind The kind of the error.
+ * \param message_parts The error message parts, each part can be NULL and will be skipped.
+ * \param num_parts The number of error message parts.
+ */
+TVM_FFI_DLL void TVMFFIErrorSetRaisedFromCStrParts(const char* kind, const char** message_parts,
+                                                   int32_t num_parts);
 
 /*!
  * \brief Create an initial error object.

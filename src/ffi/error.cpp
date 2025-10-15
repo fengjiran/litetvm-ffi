@@ -4,6 +4,8 @@
 #include "ffi/error.h"
 #include "ffi/c_api.h"
 
+#include <cstring>
+
 namespace litetvm {
 namespace ffi {
 
@@ -16,6 +18,25 @@ public:
 
     void SetRaisedByCstr(const char* kind, const char* message, const TVMFFIByteArray* traceback) {
         Error error(kind, message, traceback);
+        last_error_ = details::ObjectUnsafe::ObjectPtrFromObjectRef<ErrorObj>(std::move(error));
+    }
+
+    void SetRaisedByCstrParts(const char* kind, const char** message_parts, int32_t num_parts,
+                            const TVMFFIByteArray* backtrace) {
+        std::string message;
+        size_t total_len = 0;
+        for (int i = 0; i < num_parts; ++i) {
+            if (message_parts[i] != nullptr) {
+                total_len += std::strlen(message_parts[i]);
+            }
+        }
+        message.reserve(total_len);
+        for (int i = 0; i < num_parts; ++i) {
+            if (message_parts[i] != nullptr) {
+                message.append(message_parts[i]);
+            }
+        }
+        Error error(kind, message, backtrace);
         last_error_ = details::ObjectUnsafe::ObjectPtrFromObjectRef<ErrorObj>(std::move(error));
     }
 
@@ -38,6 +59,13 @@ private:
 void TVMFFIErrorSetRaisedFromCStr(const char* kind, const char* message) {
     // NOTE: run traceback here to simplify the depth of tracekback
     litetvm::ffi::SafeCallContext::ThreadLocal()->SetRaisedByCstr(kind, message, TVM_FFI_TRACEBACK_HERE);
+}
+
+void TVMFFIErrorSetRaisedFromCStrParts(const char* kind, const char** message_parts,
+                                       int32_t num_parts) {
+    // NOTE: run backtrace here to simplify the depth of tracekback
+    litetvm::ffi::SafeCallContext::ThreadLocal()->SetRaisedByCstrParts(
+        kind, message_parts, num_parts, TVMFFITraceback(nullptr, 0, nullptr));
 }
 
 void TVMFFIErrorSetRaised(TVMFFIObjectHandle error) {

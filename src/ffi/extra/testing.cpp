@@ -1,6 +1,7 @@
 //
 // Created by richard on 5/15/25.
 //
+#include "ffi/any.h"
 #include "ffi/container/array.h"
 #include "ffi/container/map.h"
 #include "ffi/container/tensor.h"
@@ -153,6 +154,22 @@ TVM_FFI_NO_INLINE void TestApply(PackedArgs args, Any* ret) {
     f.CallPacked(args.Slice(1), ret);
 }
 
+int __add_one_c_symbol(void*, const TVMFFIAny* args, int32_t num_args, TVMFFIAny* ret) {
+    TVM_FFI_SAFE_CALL_BEGIN();
+    int x = reinterpret_cast<const AnyView*>(args)[0].cast<int>();
+    reinterpret_cast<Any*>(ret)[0] = x + 1;
+    TVM_FFI_SAFE_CALL_END();
+}
+
+void _mlir_add_one_c_symbol(void** packed_args) {
+    void* handle = *reinterpret_cast<void**>(packed_args[0]);
+    const TVMFFIAny* args = *reinterpret_cast<const TVMFFIAny**>(packed_args[1]);
+    int32_t num_args = *reinterpret_cast<int32_t*>(packed_args[2]);
+    TVMFFIAny* rv = *reinterpret_cast<TVMFFIAny**>(packed_args[3]);
+    int* ret_code = reinterpret_cast<int*>(packed_args[4]);
+    *ret_code = __add_one_c_symbol(handle, args, num_args, rv);
+}
+
 TVM_FFI_STATIC_INIT_BLOCK() {
     namespace refl = reflection;
 
@@ -205,7 +222,15 @@ TVM_FFI_STATIC_INIT_BLOCK() {
                  })
             .def("testing.object_use_count", [](const Object* obj) { return obj->use_count(); })
             .def("testing.make_unregistered_object",
-                 [] { return ObjectRef(make_object<TestUnregisteredObject>(41, 42)); });
+                 [] { return ObjectRef(make_object<TestUnregisteredObject>(41, 42)); })
+            .def("testing.get_add_one_c_symbol",
+                 []() {
+                     TVMFFISafeCallType symbol = __add_one_c_symbol;
+                     return reinterpret_cast<int64_t>(reinterpret_cast<void*>(symbol));
+                 })
+            .def("testing.get_mlir_add_one_c_symbol", []() {
+                return reinterpret_cast<int64_t>(reinterpret_cast<void*>(_mlir_add_one_c_symbol));
+            });
 }
 
 }// namespace ffi
@@ -352,9 +377,11 @@ TVM_FFI_STATIC_INIT_BLOCK() {
             .def("testing.schema_id_arr_int", [](Array<int64_t> arr) { return arr; })
             .def("testing.schema_id_arr_str", [](Array<String> arr) { return arr; })
             .def("testing.schema_id_arr_obj", [](Array<ObjectRef> arr) { return arr; })
+            .def("testing.schema_id_arr", [](const ArrayObj* arr) { return arr; })
             .def("testing.schema_id_map_str_int", [](Map<String, int64_t> m) { return m; })
             .def("testing.schema_id_map_str_str", [](Map<String, String> m) { return m; })
             .def("testing.schema_id_map_str_obj", [](Map<String, ObjectRef> m) { return m; })
+            .def("testing.schema_id_map", [](const MapObj* m) { return m; })
             .def("testing.schema_id_variant_int_str", [](Variant<int64_t, String> v) { return v; })
             .def_packed("testing.schema_packed", [](PackedArgs args, Any* ret) {})
             .def("testing.schema_arr_map_opt",

@@ -70,6 +70,10 @@ inline bool ShouldExcludeFrame(const char* filename, const char* symbol) {
     if (strncmp(symbol, "TVMFFIErrorSetRaisedFromCStr", 28) == 0) {
         return true;
     }
+
+    if (strncmp(symbol, "TVMFFIErrorSetRaisedFromCStrParts", 33) == 0) {
+        return true;
+    }
     // libffi.so stack frames.  These may also show up as numeric
     // addresses with no symbol name.  This could be improved in the
     // future by using dladdr() to check whether an address is contained
