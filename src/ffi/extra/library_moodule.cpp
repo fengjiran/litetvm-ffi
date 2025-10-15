@@ -13,21 +13,20 @@ namespace ffi {
 
 class LibraryModuleObj final : public ModuleObj {
 public:
-    explicit LibraryModuleObj(ObjectPtr<Library> lib) : lib_(lib) {}
+    explicit LibraryModuleObj(ObjectPtr<Library> lib) : lib_(std::move(lib)) {}
 
-    const char* kind() const final { return "library"; }
+    const char* kind() const { return "library"; }
 
     /*! \brief Get the property of the runtime module .*/
-    int GetPropertyMask() const final { return Module::kBinarySerializable | Module::kRunnable; };
+    int GetPropertyMask() const { return Module::kBinarySerializable | Module::kRunnable; };
 
-    Optional<ffi::Function> GetFunction(const String& name) final {
+    Optional<Function> GetFunction(const String& name) {
         TVMFFISafeCallType faddr;
         faddr = reinterpret_cast<TVMFFISafeCallType>(lib_->GetSymbolWithSymbolPrefix(name));
         // ensure the function keeps the Library Module alive
         Module self_strong_ref = GetRef<Module>(this);
         if (faddr != nullptr) {
-            return ffi::Function::FromPacked([faddr, self_strong_ref](ffi::PackedArgs args,
-                                                                      ffi::Any* rv) {
+            return Function::FromPacked([faddr, self_strong_ref](PackedArgs args,Any* rv) {
                 TVM_FFI_ICHECK_LT(rv->type_index(), ffi::TypeIndex::kTVMFFIStaticObjectBegin);
                 TVM_FFI_CHECK_SAFE_CALL((*faddr)(nullptr, reinterpret_cast<const TVMFFIAny*>(args.data()),
                                                  args.size(), reinterpret_cast<TVMFFIAny*>(rv)));
@@ -60,7 +59,7 @@ Module LoadModuleFromBytes(const std::string& kind, const Bytes& bytes) {
  * \return the root module
  *
  */
-Module ProcessLibraryBin(const char* library_bin, ObjectPtr<Library> opt_lib,
+Module ProcessLibraryBin(const char* library_bin, const ObjectPtr<Library>& opt_lib,
                          void** library_ctx_addr = nullptr) {
     // Layout of the library binary:
     // <nbytes : u64> <import_tree> <key0: str> [<val0: bytes>] <key1: str> [<val1: bytes>] ...
@@ -73,7 +72,7 @@ Module ProcessLibraryBin(const char* library_bin, ObjectPtr<Library> opt_lib,
     TVM_FFI_ICHECK(library_bin != nullptr);
     uint64_t nbytes = 0;
     for (size_t i = 0; i < sizeof(nbytes); ++i) {
-        uint64_t c = library_bin[i];
+        uint64_t c = static_cast<unsigned char>(library_bin[i]);
         nbytes |= (c & 0xffUL) << (i * 8);
     }
 
@@ -97,7 +96,7 @@ Module ProcessLibraryBin(const char* library_bin, ObjectPtr<Library> opt_lib,
             if (library_ctx_addr) {
                 *library_ctx_addr = lib_mod_ptr.get();
             }
-            modules.emplace_back(Module(lib_mod_ptr));
+            modules.emplace_back(lib_mod_ptr);
         } else {
             std::string module_bytes;
             TVM_FFI_ICHECK(stream.Read(&module_bytes));
@@ -119,7 +118,7 @@ Module ProcessLibraryBin(const char* library_bin, ObjectPtr<Library> opt_lib,
 // registry to store context symbols
 class ContextSymbolRegistry {
 public:
-    void InitContextSymbols(ObjectPtr<Library> lib) {
+    void InitContextSymbols(const ObjectPtr<Library>& lib) {
         for (const auto& [name, symbol]: context_symbols_) {
             if (void** symbol_addr = reinterpret_cast<void**>(lib->GetSymbol(name))) {
                 *symbol_addr = symbol;
@@ -133,7 +132,9 @@ public:
         }
     }
 
-    void Register(String name, void* symbol) { context_symbols_.emplace_back(name, symbol); }
+    void Register(String name, void* symbol) {
+        context_symbols_.emplace_back(std::move(name), symbol);
+    }
 
     static ContextSymbolRegistry* Global() {
         static ContextSymbolRegistry* inst = new ContextSymbolRegistry();
@@ -148,11 +149,11 @@ void Module::VisitContextSymbols(const ffi::TypedFunction<void(String, void*)>& 
     ContextSymbolRegistry::Global()->VisitContextSymbols(callback);
 }
 
-Module CreateLibraryModule(ObjectPtr<Library> lib) {
+Module CreateLibraryModule(const ObjectPtr<Library>& lib) {
     const char* library_bin =
-            reinterpret_cast<const char*>(lib->GetSymbol(ffi::symbol::tvm_ffi_library_bin));
+            static_cast<const char*>(lib->GetSymbol(symbol::tvm_ffi_library_bin));
     void** library_ctx_addr =
-            reinterpret_cast<void**>(lib->GetSymbol(ffi::symbol::tvm_ffi_library_ctx));
+            static_cast<void**>(lib->GetSymbol(symbol::tvm_ffi_library_ctx));
 
     ContextSymbolRegistry::Global()->InitContextSymbols(lib);
     if (library_bin != nullptr) {

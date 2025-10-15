@@ -39,7 +39,7 @@ public:
     // default constructors.
     Optional() = default;
     Optional(const Optional<T>& other) : data_(other.data_) {}
-    Optional(Optional<T>&& other) : data_(std::move(other.data_)) {}
+    Optional(Optional<T>&& other) noexcept : data_(std::move(other.data_)) {}
     Optional(std::optional<T> other) : data_(std::move(other)) {}// NOLINT(*)
     Optional(std::nullopt_t) {}                                  // NOLINT(*)
     // normal value handling.
@@ -139,7 +139,7 @@ public:
     // default constructors.
     Optional() = default;
     Optional(const Optional<T>& other) : data_(other.data_) {}
-    Optional(Optional<T>&& other) : data_(std::move(other.data_)) {}
+    Optional(Optional<T>&& other) noexcept : data_(std::move(other.data_)) {}
     Optional(std::nullopt_t) {}// NOLINT(*)
     // normal value handling.
     Optional(T other)// NOLINT(*)
@@ -253,7 +253,7 @@ public:
     Optional() = default;
     Optional(const Optional& other) : ObjectRef(other.data_) {}
     Optional(Optional&& other) noexcept : ObjectRef(std::move(other.data_)) {}
-    explicit Optional(ffi::UnsafeInit tag) : ObjectRef(tag) {}
+    explicit Optional(UnsafeInit tag) : ObjectRef(tag) {}
     // nullopt hanlding
     Optional(std::nullopt_t) {}// NOLINT(*)
 

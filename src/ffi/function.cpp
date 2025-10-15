@@ -57,6 +57,7 @@ public:
 
     private:
         void SyncMethodInfo(int64_t flags) {
+            this->method = AnyView(func_data).CopyToTVMFFIAny();
             this->flags = flags;
             this->name = TVMFFIByteArray{name_data.data(), name_data.size()};
             this->doc = TVMFFIByteArray{doc_data.data(), doc_data.size()};
@@ -102,7 +103,7 @@ public:
 
     NODISCARD Array<String> ListNames() const {
         Array<String> names;
-        names.reserve(table_.size());
+        names.reserve(static_cast<int64_t>(table_.size()));
         for (const auto& kv: table_) {
             names.push_back(kv.first);
         }
@@ -206,7 +207,7 @@ TVM_FFI_STATIC_INIT_BLOCK() {
                  })
             .def("ffi.String", [](litetvm::ffi::String val) -> litetvm::ffi::String { return val; })
             .def("ffi.Bytes", [](litetvm::ffi::Bytes val) -> litetvm::ffi::Bytes { return val; })
-            .def("ffi.GetGlobalFuncMetadata", [](litetvm::ffi::String name) -> litetvm::ffi::String {
+            .def("ffi.GetGlobalFuncMetadata", [](const litetvm::ffi::String& name) -> litetvm::ffi::String {
                 const auto* f = litetvm::ffi::GlobalFunctionTable::Global()->Get(name);
                 if (f == nullptr) {
                     TVM_FFI_THROW(RuntimeError) << "Global Function is not found: " << name;

@@ -190,7 +190,7 @@ TEST(JSONParser, Object) {
 }
 
 TEST(JSONParser, ObjectOrderPreserving) {
-    auto obj = json::Parse("{\"c\": 1, \"a\": 2, \"b\": 3}   ");
+    auto obj = json::Parse(R"({"c": 1, "a": 2, "b": 3}   )");
     json::Array keys;
     for (auto& [key, value]: obj.cast<json::Object>()) {
         keys.push_back(key);
@@ -284,7 +284,7 @@ TEST(JSONParser, LargeInputs) {
 
     auto result = json::Parse(large_array);
     EXPECT_TRUE(result != nullptr);
-    EXPECT_EQ((int)result.cast<json::Array>().size(), 1000);
+    EXPECT_EQ((int) result.cast<json::Array>().size(), 1000);
 
     // Test large object
     std::string large_object = "{";
@@ -296,7 +296,7 @@ TEST(JSONParser, LargeInputs) {
 
     result = json::Parse(large_object);
     EXPECT_TRUE(result != nullptr);
-    EXPECT_EQ((int)result.cast<json::Object>().size(), 500);
+    EXPECT_EQ((int) result.cast<json::Object>().size(), 500);
 }
 
 // TEST(JSONParser, MixedDataTypes) {

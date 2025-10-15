@@ -295,7 +295,7 @@ TEST(Any, ObjectRefWithFallbackTraits) {
     EXPECT_EQ(v1->value, 1);
     EXPECT_EQ(v1->dtype, "bool");
 
-    any1 = int64_t(42);
+    any1 = static_cast<int64_t>(42);
     auto v2 = any1.cast<TPrimExpr>();
     EXPECT_EQ(v2->value, 42);
     EXPECT_EQ(v2->dtype, "int64");
@@ -317,7 +317,7 @@ TEST(Any, ObjectRefWithFallbackTraits) {
     EXPECT_EQ(v5->value, 1);
     EXPECT_EQ(v5->dtype, "bool");
 
-    view1 = int64_t(42);
+    view1 = static_cast<int64_t>(42);
     auto v6 = view1.cast<TPrimExpr>();
     EXPECT_EQ(v6->value, 42);
     EXPECT_EQ(v6->dtype, "int64");

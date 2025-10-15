@@ -56,10 +56,10 @@ TEST(Array, Map) {
     // Basic functionality
     TInt x(1), y(1);
     Array<TInt> var_arr{x, y};
-    auto f = [](const TInt& var) -> TNumber {
-        return TFloat(static_cast<double>(var->value + 1));
-    };
-    Array<TNumber> expr_arr = var_arr.Map(f);
+    Array<TNumber> expr_arr =
+            var_arr.Map([](TInt var) -> TNumber {// NOLINT(performance-unnecessary-value-param)
+                return TFloat(static_cast<double>(var->value + 1));
+            });
 
     EXPECT_NE(var_arr.get(), expr_arr.get());
     EXPECT_TRUE(expr_arr[0]->IsInstance<TFloatObj>());
@@ -107,8 +107,8 @@ TEST(Array, ResizeReserveClear) {
     for (size_t n = 0; n < 10; ++n) {
         Array<int> a;
         Array<int> b;
-        a.resize(n);
-        b.reserve(n);
+        a.resize(static_cast<int64_t>(n));
+        b.reserve(static_cast<int64_t>(n));
         ASSERT_EQ(a.size(), n);
         ASSERT_GE(a.capacity(), n);
         a.clear();
@@ -154,8 +154,8 @@ TEST(Array, InsertEraseRange) {
         a.insert(a.end(), static_cast<int>(n));
         b.insert(b.end(), static_cast<int>(n));
         for (size_t pos = 0; pos <= n; ++pos) {
-            a.insert(a.begin() + pos, range_a.begin(), range_a.end());
-            b.insert(b.begin() + pos, range_b.begin(), range_b.end());
+            a.insert(a.begin() + static_cast<std::ptrdiff_t>(pos), range_a.begin(), range_a.end());
+            b.insert(b.begin() + static_cast<std::ptrdiff_t>(pos), range_b.begin(), range_b.end());
             ASSERT_EQ(a.front(), b.front());
             ASSERT_EQ(a.back(), b.back());
             ASSERT_EQ(a.size(), n + range_a.size());
@@ -164,8 +164,8 @@ TEST(Array, InsertEraseRange) {
             for (size_t k = 0; k < m; ++k) {
                 ASSERT_EQ(a[k], b[k]);
             }
-            a.erase(a.begin() + pos, a.begin() + pos + range_a.size());
-            b.erase(b.begin() + pos, b.begin() + pos + range_b.size());
+            a.erase(a.begin() + static_cast<std::ptrdiff_t>(pos), a.begin() + static_cast<std::ptrdiff_t>(pos) + range_a.size());
+            b.erase(b.begin() + static_cast<std::ptrdiff_t>(pos), b.begin() + static_cast<std::ptrdiff_t>(pos) + range_b.size());
         }
         ASSERT_EQ(a.front(), b.front());
         ASSERT_EQ(a.back(), b.back());

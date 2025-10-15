@@ -48,7 +48,7 @@ public:
     bool Read(T* data) {
         bool ret = Read(static_cast<void*>(data), sizeof(T)) == sizeof(T);// NOLINT(*)
         if (!TVM_FFI_IO_NO_ENDIAN_SWAP) {
-            ByteSwap(&data, sizeof(T), 1);
+            ByteSwap(static_cast<void*>(data), sizeof(T), 1);
         }
         return ret;
     }

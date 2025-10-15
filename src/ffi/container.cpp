@@ -40,17 +40,17 @@ private:
 };
 
 TVM_FFI_STATIC_INIT_BLOCK() {
-    namespace refl = litetvm::ffi::reflection;
+    namespace refl = reflection;
     refl::GlobalDef()
             .def_packed("ffi.Array",
-                        [](ffi::PackedArgs args, Any* ret) {
+                        [](PackedArgs args, Any* ret) {
                             *ret = Array<Any>(args.data(), args.data() + args.size());
                         })
-            .def("ffi.ArrayGetItem", [](const ffi::ArrayObj* n, int64_t i) -> Any { return n->at(i); })
+            .def("ffi.ArrayGetItem", [](const ArrayObj* n, int64_t i) -> Any { return n->at(i); })
             .def("ffi.ArraySize",
-                 [](const ffi::ArrayObj* n) -> int64_t { return static_cast<int64_t>(n->size()); })
+                 [](const ArrayObj* n) -> int64_t { return static_cast<int64_t>(n->size()); })
             .def_packed("ffi.Map",
-                        [](ffi::PackedArgs args, Any* ret) {
+                        [](PackedArgs args, Any* ret) {
                             TVM_FFI_ICHECK_EQ(args.size() % 2, 0);
                             Map<Any, Any> data;
                             for (int i = 0; i < args.size(); i += 2) {
@@ -59,11 +59,13 @@ TVM_FFI_STATIC_INIT_BLOCK() {
                             *ret = data;
                         })
             .def("ffi.MapSize",
-                 [](const ffi::MapObj* n) -> int64_t { return static_cast<int64_t>(n->size()); })
-            .def("ffi.MapGetItem", [](const ffi::MapObj* n, const Any& k) -> Any { return n->at(k); })
+                 [](const MapObj* n) -> int64_t { return static_cast<int64_t>(n->size()); })
+            .def("ffi.MapGetItem", [](const MapObj* n, const Any& k) -> Any { return n->at(k); })
             .def("ffi.MapCount",
-                 [](const ffi::MapObj* n, const Any& k) -> int64_t { return n->count(k); })
-            .def("ffi.MapForwardIterFunctor", [](const ffi::MapObj* n) -> ffi::Function {
+                 [](const MapObj* n, const Any& k) -> int64_t {
+                     return static_cast<int64_t>(n->count(k));
+                 })
+            .def("ffi.MapForwardIterFunctor", [](const MapObj* n) -> Function {
                 return ffi::Function::FromTyped(MapForwardIterFunctor(n->begin(), n->end()));
             });
 }

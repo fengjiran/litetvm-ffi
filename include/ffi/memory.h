@@ -123,6 +123,10 @@ public:
         ffi_ptr->deleter = Handler::Deleter();
         return ObjectUnsafe::ObjectPtrFromOwned<ArrayType>(ptr);
     }
+
+private:
+    ObjAllocatorBase() = default;
+    friend Derived;
 };
 
 // Simple allocator that uses new/delete.

@@ -79,16 +79,15 @@ private:
 
 class SystemLibModuleRegistry {
 public:
-    Module GetOrCreateModule(String symbol_prefix) {
-        std::lock_guard<std::mutex> lock(mutex_);
+    Module GetOrCreateModule(const String& symbol_prefix) {
+        std::scoped_lock<std::mutex> lock(mutex_);
         auto it = lib_map_.find(symbol_prefix);
         if (it != lib_map_.end()) {
             return (*it).second;
-        } else {
-            Module mod = CreateLibraryModule(make_object<SystemLibrary>(symbol_prefix));
-            lib_map_.Set(symbol_prefix, mod);
-            return mod;
         }
+        Module mod = CreateLibraryModule(make_object<SystemLibrary>(symbol_prefix));
+        lib_map_.Set(symbol_prefix, mod);
+        return mod;
     }
 
     static SystemLibModuleRegistry* Global() {

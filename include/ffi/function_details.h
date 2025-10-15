@@ -70,7 +70,7 @@ struct FuncFunctorImpl {
 
     TVM_FFI_INLINE static std::string TypeSchema() {
         std::ostringstream oss;
-        oss << "{\"type\":\"" << StaticTypeKey::kTVMFFIFunction << "\",\"args\":[";
+        oss << R"({"type":")" << StaticTypeKey::kTVMFFIFunction << R"(","args":[)";
         oss << details::TypeSchema<R>::v();
         ((oss << "," << details::TypeSchema<Args>::v()), ...);
         oss << "]}";
@@ -102,9 +102,9 @@ template<typename R, typename... Args>
 struct FunctionInfo<R (*)(Args...)> : FuncFunctorImpl<R, Args...> {};
 
 // Support pointer-to-member functions used in reflection (e.g. &Class::method)
-template <typename Class, typename R, typename... Args>
+template<typename Class, typename R, typename... Args>
 struct FunctionInfo<R (Class::*)(Args...)> : FuncFunctorImpl<R, Class*, Args...> {};
-template <typename Class, typename R, typename... Args>
+template<typename Class, typename R, typename... Args>
 struct FunctionInfo<R (Class::*)(Args...) const> : FuncFunctorImpl<R, const Class*, Args...> {};
 
 
@@ -216,18 +216,22 @@ struct TypeSchemaImpl {
 template<>
 struct TypeSchemaImpl<void> {
     static std::string v() {
-        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFINone) + "\"}";
+        return R"({"type":")" + std::string(StaticTypeKey::kTVMFFINone) + R"("})";
     }
 };
 
 template<>
 struct TypeSchemaImpl<Any> {
-    static std::string v() { return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIAny) + "\"}"; }
+    static std::string v() {
+        return R"({"type":")" + std::string(StaticTypeKey::kTVMFFIAny) + R"("})";
+    }
 };
 
 template<>
 struct TypeSchemaImpl<AnyView> {
-    static std::string v() { return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIAny) + "\"}"; }
+    static std::string v() {
+        return R"({"type":")" + std::string(StaticTypeKey::kTVMFFIAny) + R"("})";
+    }
 };
 
 }// namespace details

@@ -107,7 +107,7 @@ Module Module::LoadFromFile(const String& file_name) {
         format = "so";
     }
     String loader_name = "ffi.Module.load_from_file." + format;
-    const auto floader = litetvm::ffi::Function::GetGlobal(loader_name);
+    const auto floader = Function::GetGlobal(loader_name);
     if (!floader.has_value()) {
         TVM_FFI_THROW(RuntimeError) << "Loader for `." << format << "` files is not registered,"
                                     << " resolved to (" << loader_name << ") in the global registry."
@@ -118,25 +118,25 @@ Module Module::LoadFromFile(const String& file_name) {
 }
 
 TVM_FFI_STATIC_INIT_BLOCK() {
-    namespace refl = litetvm::ffi::reflection;
+    namespace refl = reflection;
     ModuleObj::InternalUnsafe::RegisterReflection();
 
     refl::GlobalDef()
             .def("ffi.ModuleLoadFromFile", &Module::LoadFromFile)
             .def_method("ffi.ModuleImplementsFunction",
-                        [](Module mod, String name, bool query_imports) {
+                        [](const Module& mod, const String& name, bool query_imports) {
                             return mod->ImplementsFunction(name, query_imports);
                         })
             .def_method("ffi.ModuleGetFunctionMetadata",
-                        [](Module mod, String name, bool query_imports) {
+                        [](const Module& mod, const String& name, bool query_imports) {
                             return mod->GetFunctionMetadata(name, query_imports);
                         })
             .def_method("ffi.ModuleGetFunctionDoc",
-                        [](Module mod, String name, bool query_imports) {
+                        [](const Module& mod, const String& name, bool query_imports) {
                             return mod->GetFunctionDoc(name, query_imports);
                         })
             .def_method("ffi.ModuleGetFunction",
-                        [](Module mod, String name, bool query_imports) {
+                        [](const Module& mod, const String& name, bool query_imports) {
                             return mod->GetFunction(name, query_imports);
                         })
             .def_method("ffi.ModuleGetPropertyMask", &ModuleObj::GetPropertyMask)

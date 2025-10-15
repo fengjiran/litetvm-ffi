@@ -171,7 +171,7 @@ private:
             if (indent_ != 0) {
                 WriteIndent();
             }
-            WriteValue(value[i]);
+            WriteValue(value[static_cast<int64_t>(i)]);
         }
         if (indent_ != 0) {
             total_indent_ -= indent_;

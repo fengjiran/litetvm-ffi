@@ -160,8 +160,8 @@ public:
 
     uint64_t HashArray(Array<Any> arr) {
         uint64_t hash_value = details::StableHashCombine(arr->GetTypeKeyHash(), arr.size());
-        for (size_t i = 0; i < arr.size(); ++i) {
-            hash_value = details::StableHashCombine(hash_value, HashAny(arr[i]));
+        for (const auto& elem : arr) {
+            hash_value = details::StableHashCombine(hash_value, HashAny(elem));
         }
         return hash_value;
     }
@@ -170,7 +170,7 @@ public:
     // Order independent hash value means the hash value will remain stable independent
     // of the order we hash the content at the current context.
     // This property is needed to support stable hash for map.
-    std::optional<uint64_t> FindOrderIndependentHash(Any src) {
+    std::optional<uint64_t> FindOrderIndependentHash(const Any& src) {
         using ffi::details::AnyUnsafe;
         const TVMFFIAny* src_data = AnyUnsafe::TVMFFIAnyPtrFromAny(src);
 
@@ -239,8 +239,8 @@ public:
 
     uint64_t HashShape(Shape shape) {
         uint64_t hash_value = details::StableHashCombine(shape->GetTypeKeyHash(), shape.size());
-        for (size_t i = 0; i < shape.size(); ++i) {
-            hash_value = details::StableHashCombine(hash_value, shape[i]);
+        for (int64_t i : shape) {
+            hash_value = details::StableHashCombine(hash_value, i);
         }
         return hash_value;
     }

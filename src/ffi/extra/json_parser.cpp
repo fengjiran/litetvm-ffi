@@ -8,6 +8,7 @@
 
 #include <cinttypes>
 #include <limits>
+#include <utility>
 
 namespace litetvm {
 namespace ffi {
@@ -408,37 +409,37 @@ private:
                         // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx    | 0x10000 - end
                         // ------------------------------------------------------------
                         if (code_point < 0x80) {
-                            out_str.push_back(code_point);
+                            out_str.push_back(static_cast<char>(code_point));
                         } else if (code_point < 0x800) {
                             // first byte: 110xxxxx (5 effective bits)
                             // second byte: 10xxxxxx (6 effecive bits)
                             // shift by 6 bits to get the first bytes
-                            out_str.push_back(0xC0 | (code_point >> 6));
+                            out_str.push_back(static_cast<char>(0xC0 | (code_point >> 6)));
                             // mask by 6 effective bits
-                            out_str.push_back(0x80 | (code_point & 0x3F));
+                            out_str.push_back(static_cast<char>(0x80 | (code_point & 0x3F)));
                         } else if (code_point < 0x10000) {
                             // first byte: 1110xxxx (4 effective bits)
                             // second byte: 10xxxxxx (6 effecive bits)
                             // third byte: 10xxxxxx (6 effecive bits)
                             // shift by 12 bits to get the first bytes
-                            out_str.push_back(0xE0 | (code_point >> 12));
+                            out_str.push_back(static_cast<char>(0xE0 | (code_point >> 12)));
                             // shift by 6 bits to get the second bytes, mask by 6 effective bits
-                            out_str.push_back(0x80 | ((code_point >> 6) & 0x3F));
+                            out_str.push_back(static_cast<char>(0x80 | ((code_point >> 6) & 0x3F)));
                             // mask by 6 effective bits
-                            out_str.push_back(0x80 | (code_point & 0x3F));
+                            out_str.push_back(static_cast<char>(0x80 | (code_point & 0x3F)));
                         } else {
                             // first byte: 11110xxx (3 effective bits)
                             // second byte: 10xxxxxx (6 effecive bits)
                             // third byte: 10xxxxxx (6 effecive bits)
                             // fourth byte: 10xxxxxx (6 effecive bits)
                             // shift by 18 bits to get the first bytes
-                            out_str.push_back(0xF0 | (code_point >> 18));
+                            out_str.push_back(static_cast<char>(0xF0 | (code_point >> 18)));
                             // shift by 12 bits to get the second bytes, mask by 6 effective bits
-                            out_str.push_back(0x80 | ((code_point >> 12) & 0x3F));
+                            out_str.push_back(static_cast<char>(0x80 | ((code_point >> 12) & 0x3F)));
                             // shift by 6 bits to get the third bytes, mask by 6 effective bits
-                            out_str.push_back(0x80 | ((code_point >> 6) & 0x3F));
+                            out_str.push_back(static_cast<char>(0x80 | ((code_point >> 6) & 0x3F)));
                             // mask by 6 effective bits
-                            out_str.push_back(0x80 | (code_point & 0x3F));
+                            out_str.push_back(static_cast<char>(0x80 | (code_point & 0x3F)));
                         }
                         break;
                     }
@@ -517,7 +518,8 @@ public:
     }
 
 private:
-    explicit JSONParser(String json_str) : ctx_(json_str.data(), json_str.data() + json_str.size()) {}
+    explicit JSONParser(String json_str)
+        : storage_(std::move(json_str)), ctx_(storage_.data(), storage_.data() + storage_.size()) {}
 
     bool ParseTail() {
         ctx_.SkipSpaces();
@@ -626,7 +628,8 @@ private:
             ctx_.SkipSpaces();
             if (ctx_.Peek() == '}') {
                 ctx_.SkipNextAssumeNoSpace();
-                *out = json::Object(object_temp_stack_.begin() + stack_top, object_temp_stack_.end());
+                *out = json::Object(object_temp_stack_.begin() + static_cast<std::ptrdiff_t>(stack_top),
+                                    object_temp_stack_.end());
                 // recover the stack to original state
                 object_temp_stack_.resize(stack_top);
                 return true;
@@ -672,7 +675,8 @@ private:
                 ctx_.SkipSpaces();
             } else if (next_char == ']') {
                 ctx_.SkipNextAssumeNoSpace();
-                *out = json::Array(array_temp_stack_.begin() + stack_top, array_temp_stack_.end());
+                *out = json::Array(array_temp_stack_.begin() + static_cast<std::ptrdiff_t>(stack_top),
+                                   array_temp_stack_.end());
                 // recover the stack
                 array_temp_stack_.resize(stack_top);
                 return true;
@@ -684,6 +688,7 @@ private:
         return false;
     }
 
+    String storage_;
     JSONParserContext ctx_;
     // Temp stack for intermediate values
     // we first create a persistent stack to store the parsed values

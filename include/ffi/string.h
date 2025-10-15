@@ -66,7 +66,7 @@ public:
 template<typename Base>
 class BytesObjStdImpl : public Base {
 public:
-    explicit BytesObjStdImpl(std::string other) : data_{other} {
+    explicit BytesObjStdImpl(std::string other) : data_{std::move(other)} {
         this->data = data_.data();
         this->size = data_.size();
     }
@@ -298,7 +298,9 @@ public:
      *
      * \return std::string
      */
-    operator std::string() const { return std::string{data(), size()}; }
+    operator std::string() const {
+        return std::string{data(), size()};
+    }
 
     /*!
      * \brief Compare two char sequence
@@ -347,9 +349,9 @@ private:
     // internal backing cell
     details::BytesBaseCell data_;
     // create a new String from TVMFFIAny, must keep private
-    explicit Bytes(details::BytesBaseCell data) : data_(data) {}
+    explicit Bytes(details::BytesBaseCell data) : data_(std::move(data)) {}
     char* InitSpaceForSize(size_t size) {
-        return data_.InitSpaceForSize<details::BytesObj>(size, kTVMFFISmallBytes,kTVMFFIBytes);
+        return data_.InitSpaceForSize<details::BytesObj>(size, kTVMFFISmallBytes, kTVMFFIBytes);
     }
     void InitData(const char* data, size_t size) {
         char* dest_data = InitSpaceForSize(size);
@@ -551,11 +553,13 @@ public:
     }
 
     /*!
-     * \brief Convert String to an std::string object
+     * \brief Convert String to a std::string object
      *
      * \return std::string
      */
-    operator std::string() const { return std::string{data(), size()}; }
+    operator std::string() const {
+        return std::string{data(), size()};
+    }
 
 private:
     template<typename, typename>
@@ -565,7 +569,7 @@ private:
     // internal backing cell
     details::BytesBaseCell data_;
     // create a new String from TVMFFIAny, must keep private
-    explicit String(details::BytesBaseCell data) : data_(data) {}
+    explicit String(details::BytesBaseCell data) : data_(std::move(data)) {}
     /*!
      * \brief Create a new empty space for a string
      * \param size The size of the string
@@ -633,7 +637,7 @@ inline String EscapeString(const String& value) {
             /// \cond Doxygen_Suppress
 #define TVM_FFI_ESCAPE_CHAR(pattern, val) \
     case pattern:                         \
-        oss << val;                       \
+        oss << (val);                     \
         break
             TVM_FFI_ESCAPE_CHAR('\"', "\\\"");
             TVM_FFI_ESCAPE_CHAR('\\', "\\\\");
@@ -714,7 +718,7 @@ struct TypeTraits<Bytes> : public TypeTraitsBase {
     }
 
     TVM_FFI_INLINE static std::string TypeSchema() {
-        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIBytes) + "\"}";
+        return R"({"type":")" + std::string(StaticTypeKey::kTVMFFIBytes) + R"("})";
     }
 };
 
@@ -763,7 +767,7 @@ struct TypeTraits<String> : public TypeTraitsBase {
     }
 
     TVM_FFI_INLINE static std::string TypeSchema() {
-        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIStr) + "\"}";
+        return R"({"type":")" + std::string(StaticTypeKey::kTVMFFIStr) + R"("})";
     }
 };
 
@@ -809,8 +813,12 @@ struct TypeTraits<const char*> : public TypeTraitsBase {
         return std::nullopt;
     }
 
-    TVM_FFI_INLINE static std::string TypeStr() { return "const char*"; }
-    TVM_FFI_INLINE static std::string TypeSchema() { return "{\"type\":\"const char*\"}"; }
+    TVM_FFI_INLINE static std::string TypeStr() {
+        return "const char*";
+    }
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return R"({"type":"const char*"})";
+    }
 };
 
 // TVMFFIByteArray, requirement: not nullable, do not retain ownership
@@ -840,7 +848,7 @@ struct TypeTraits<TVMFFIByteArray*> : public TypeTraitsBase {
 
     TVM_FFI_INLINE static std::string TypeStr() { return StaticTypeKey::kTVMFFIByteArrayPtr; }
     TVM_FFI_INLINE static std::string TypeSchema() {
-        return "{\"type\":\"" + std::string(StaticTypeKey::kTVMFFIByteArrayPtr) + "\"}";
+        return R"({"type":")" + std::string(StaticTypeKey::kTVMFFIByteArrayPtr) + R"("})";
     }
 };
 
@@ -861,8 +869,13 @@ struct TypeTraits<std::string>
         TypeTraits<String>::MoveToAny(String(std::move(src)), result);
     }
 
-    TVM_FFI_INLINE static std::string TypeStr() { return "std::string"; }
-    TVM_FFI_INLINE static std::string TypeSchema() { return "{\"type\":\"std::string\"}"; }
+    TVM_FFI_INLINE static std::string TypeStr() {
+        return "std::string";
+    }
+
+    TVM_FFI_INLINE static std::string TypeSchema() {
+        return R"({"type":"std::string"})";
+    }
 
     TVM_FFI_INLINE static std::string ConvertFallbackValue(const char* src) {
         return std::string(src);
@@ -1003,7 +1016,7 @@ inline bool operator!=(const String& lhs, const char* rhs) { return lhs.compare(
 inline bool operator!=(const char* lhs, const String& rhs) { return rhs.compare(lhs) != 0; }
 
 inline std::ostream& operator<<(std::ostream& out, const String& input) {
-    out.write(input.data(), input.size());
+    out.write(input.data(), static_cast<std::streamsize>(input.size()));
     return out;
 }
 

@@ -296,7 +296,7 @@ public:
             }
         }
 
-        for (size_t i = 0; i < std::min(lhs.size(), rhs.size()); ++i) {
+        for (int64_t i = 0; i < static_cast<int64_t>(std::min(lhs.size(), rhs.size())); ++i) {
             if (!CompareAny(lhs[i], rhs[i])) {
                 if (mismatch_lhs_reverse_path_ != nullptr) {
                     mismatch_lhs_reverse_path_->emplace_back(reflection::AccessStep::ArrayItem(i));
@@ -312,11 +312,11 @@ public:
 
         if (mismatch_lhs_reverse_path_ != nullptr) {
             if (lhs.size() > rhs.size()) {
-                mismatch_lhs_reverse_path_->emplace_back(reflection::AccessStep::ArrayItem(rhs.size()));
-                mismatch_rhs_reverse_path_->emplace_back(reflection::AccessStep::ArrayItemMissing(rhs.size()));
+                mismatch_lhs_reverse_path_->emplace_back(reflection::AccessStep::ArrayItem(static_cast<int64_t>(rhs.size())));
+                mismatch_rhs_reverse_path_->emplace_back(reflection::AccessStep::ArrayItemMissing(static_cast<int64_t>(rhs.size())));
             } else {
-                mismatch_lhs_reverse_path_->emplace_back(reflection::AccessStep::ArrayItemMissing(lhs.size()));
-                mismatch_rhs_reverse_path_->emplace_back(reflection::AccessStep::ArrayItem(lhs.size()));
+                mismatch_lhs_reverse_path_->emplace_back(reflection::AccessStep::ArrayItemMissing(static_cast<int64_t>(lhs.size())));
+                mismatch_rhs_reverse_path_->emplace_back(reflection::AccessStep::ArrayItem(static_cast<int64_t>(lhs.size())));
             }
         }
         return false;

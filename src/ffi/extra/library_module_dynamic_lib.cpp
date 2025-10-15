@@ -25,7 +25,7 @@ namespace ffi {
 class DSOLibrary final : public Library {
 public:
     explicit DSOLibrary(const String& name) { Load(name); }
-    ~DSOLibrary() {
+    ~DSOLibrary() override {
         if (lib_handle_) Unload();
     }
 
@@ -89,10 +89,11 @@ void DSOLibrary::Unload() {
 #endif
 
 TVM_FFI_STATIC_INIT_BLOCK() {
-    namespace refl = litetvm::ffi::reflection;
-    refl::GlobalDef().def("ffi.Module.load_from_file.so", [](String library_path, String) {
-      return CreateLibraryModule(make_object<DSOLibrary>(library_path));
-    });
+    namespace refl = reflection;
+    refl::GlobalDef().def("ffi.Module.load_from_file.so",
+                          [](const String& library_path, const String&) {
+                              return CreateLibraryModule(make_object<DSOLibrary>(library_path));
+                          });
 }
 }// namespace ffi
 }// namespace litetvm

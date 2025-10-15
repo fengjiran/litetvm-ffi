@@ -158,8 +158,11 @@ protected:
 public:
     Object() {
         header_.combined_ref_count = 0;
-        header_.deleter = nullptr;
+        header_.type_index = 0;
+        header_.__padding = 0;
+        header_.__ensure_align = 0;
     }
+
     /*!
    * Check if the object is an instance of TargetType.
    * \tparam TargetType The target type to be checked.
@@ -761,7 +764,12 @@ public:
     /*! \brief copy assignment */
     ObjectRef& operator=(const ObjectRef& other) = default;
     /*! \brief move assignment */
-    ObjectRef& operator=(ObjectRef&& other) = default;
+    ObjectRef& operator=(ObjectRef&& other) noexcept {
+        data_ = std::move(other.data_);
+        other.data_ = nullptr;
+        return *this;
+    }
+
     /*! \brief Constructor from existing object ptr */
     explicit ObjectRef(ObjectPtr<Object> data) : data_(std::move(data)) {}
     /*! \brief Constructor from UnsafeInit */
@@ -1030,7 +1038,7 @@ struct ObjectPtrEqual {
  */
 #define TVM_FFI_DEFINE_OBJECT_REF_METHODS_NULLABLE(TypeName, ParentType, ObjectName)                 \
     TypeName() = default;                                                                            \
-    explicit TypeName(::litetvm::ffi::ObjectPtr<ObjectName> n) : ParentType(n) {}                    \
+    explicit TypeName(::litetvm::ffi::ObjectPtr<ObjectName> n) : ParentType(std::move(n)) {}         \
     explicit TypeName(::litetvm::ffi::UnsafeInit tag) : ParentType(tag) {}                           \
     TVM_FFI_DEFINE_DEFAULT_COPY_MOVE_AND_ASSIGN(TypeName)                                            \
     using __PtrType = std::conditional_t<ObjectName::_type_mutable, ObjectName*, const ObjectName*>; \

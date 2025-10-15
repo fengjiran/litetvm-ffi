@@ -112,7 +112,7 @@ public:
    * \brief Derived object class for constructing ffi::FunctionObj.
    * \param callable The type-erased callable object.
    */
-    explicit FunctionObjImpl(TCallable callable) : callable_(callable) {
+    explicit FunctionObjImpl(TCallable callable) : callable_(std::move(callable)) {
         this->safe_call = SafeCall;
         this->cpp_call = reinterpret_cast<void*>(CppCall);
     }
@@ -290,11 +290,11 @@ public:
                               std::is_convertible_v<TCallable, std::function<void(PackedArgs args, Any*)>>,
                       "ffi::Function::FromPacked requires input function signature to match packed func format");
         if constexpr (std::is_convertible_v<TCallable, std::function<void(PackedArgs args, Any*)>>) {
-            auto wrapped_call = [packed_call](const AnyView* args, int32_t num_args, Any* rv) mutable -> void {
-                PackedArgs args_pack(args, num_args);
-                packed_call(args_pack, rv);
-            };
-            return FromPackedInternal(wrapped_call);
+            return FromPackedInternal(
+                    [packed_call](const AnyView* args, int32_t num_args, Any* rv) mutable -> void {
+                        PackedArgs args_pack(args, num_args);
+                        packed_call(args_pack, rv);
+                    });
         } else {
             return FromPackedInternal(packed_call);
         }
@@ -419,11 +419,11 @@ public:
     template<typename TCallable>
     static Function FromTyped(TCallable callable) {
         using FuncInfo = details::FunctionInfo<TCallable>;
-        auto packed_call = [callable](const AnyView* args, int32_t num_args, Any* rv) mutable -> void {
+        auto packed_call = [callable = std::move(callable)](const AnyView* args, int32_t num_args, Any* rv) mutable -> void {
             details::unpack_call<typename FuncInfo::RetType>(std::make_index_sequence<FuncInfo::num_args>{},
                                                              nullptr, callable, args, num_args, rv);
         };
-        return FromPackedInternal(packed_call);
+        return FromPackedInternal(std::move(packed_call));
     }
 
     /*!
@@ -435,11 +435,11 @@ public:
     template<typename TCallable>
     static Function FromTyped(TCallable callable, std::string name) {
         using FuncInfo = details::FunctionInfo<TCallable>;
-        auto packed_call = [callable, name](const AnyView* args, int32_t num_args, Any* rv) mutable -> void {
+        auto packed_call = [callable = std::move(callable), name = std::move(name)](const AnyView* args, int32_t num_args, Any* rv) mutable -> void {
             details::unpack_call<typename FuncInfo::RetType>(
                     std::make_index_sequence<FuncInfo::num_args>{}, &name, callable, args, num_args, rv);
         };
-        return FromPackedInternal(packed_call);
+        return FromPackedInternal(std::move(packed_call));
     }
 
     /*!
@@ -685,7 +685,9 @@ public:
    * \brief Get the type schema of `TypedFunction<R(Args...)>` in json format.
    * \return The type schema of the function in json format.
    */
-    static std::string TypeSchema() { return details::FuncFunctorImpl<R, Args...>::TypeSchema(); }
+    static std::string TypeSchema() {
+        return details::FuncFunctorImpl<R, Args...>::TypeSchema();
+    }
 
     /*! \return Whether the packed function is nullptr */
     bool operator==(std::nullptr_t null) const {
@@ -714,7 +716,7 @@ struct TypeTraits<TypedFunction<FType>> : TypeTraitsBase {
     }
 
     TVM_FFI_INLINE static void MoveToAny(TypedFunction<FType> src, TVMFFIAny* result) {
-        TypeTraits<Function>::MoveToAny(std::move(src.packed()), result);
+        TypeTraits<Function>::MoveToAny(std::move(src).packed(), result);
     }
 
     TVM_FFI_INLINE static bool CheckAnyStrict(const TVMFFIAny* src) {

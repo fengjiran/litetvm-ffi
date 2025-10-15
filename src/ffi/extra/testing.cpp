@@ -15,6 +15,7 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include <utility>
 
 namespace litetvm {
 namespace ffi {
@@ -104,7 +105,7 @@ public:
 
     TestCxxClassDerivedDerived(int64_t v_i64, int32_t v_i32, double v_f64, float v_f32, String v_str,
                                bool v_bool)
-        : TestCxxClassDerived(v_i64, v_i32, v_f64, v_f32), v_str(v_str), v_bool(v_bool) {}
+        : TestCxxClassDerived(v_i64, v_i32, v_f64, v_f32), v_str(std::move(v_str)), v_bool(v_bool) {}
 
     TVM_FFI_DECLARE_OBJECT_INFO("testing.TestCxxClassDerivedDerived", TestCxxClassDerivedDerived,
                                 TestCxxClassDerived);
@@ -113,11 +114,11 @@ public:
 class TestCxxInitSubsetObj : public Object {
 public:
     int64_t required_field;
-    int64_t optional_field;
+    int64_t optional_field = -1;
     String note;
 
     explicit TestCxxInitSubsetObj(int64_t value, String note)
-        : required_field(value), optional_field(-1), note(note) {}
+        : required_field(value), note(std::move(note)) {}
 
     static constexpr bool _type_mutable = true;
     TVM_FFI_DECLARE_OBJECT_INFO("testing.TestCxxInitSubset", TestCxxInitSubsetObj, Object);
@@ -220,7 +221,7 @@ namespace ffi {
 class SchemaAllTypesObj : public Object {
 public:
     // POD and builtin types
-    bool v_bool;
+    bool v_bool{true};
     int64_t v_int;
     double v_float;
     DLDevice v_device;
@@ -242,8 +243,7 @@ public:
 
     // Constructor used by refl::init in make_with
     SchemaAllTypesObj(int64_t vi, double vf, String s)// NOLINT(*): explicit not necessary here
-        : v_bool(true),
-          v_int(vi),
+        : v_int(vi),
           v_float(vf),
           v_device(TVMFFIDLDeviceFromIntPair(kDLCPU, 0)),
           v_dtype(StringToDLDataType("float32")),
@@ -363,8 +363,8 @@ TVM_FFI_STATIC_INIT_BLOCK() {
                      // no-op combine
                      if (os.has_value()) {
                          Array<int64_t> extra;
-                         for (size_t i = 0; i < arr.size(); ++i) {
-                             if (arr[i].has_value()) extra.push_back(arr[i].value());
+                         for (const auto& i: arr) {
+                             if (i.has_value()) extra.push_back(i.value());
                          }
                          mp.Set(os.value(), extra);
                      }
