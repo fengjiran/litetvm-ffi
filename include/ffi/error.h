@@ -83,14 +83,7 @@ public:
     }
 
 private:
-    /*!
-   * \brief Update the backtrace of the error object.
-   * \param backtrace The backtrace to update.
-   * \param update_mode The mode to update the backtrace,
-   *        can be either kTVMFFIBacktraceUpdateModeReplace, kTVMFFIBacktraceUpdateModeAppend.
-   */
-    static void UpdateBacktrace(TVMFFIObjectHandle self, const TVMFFIByteArray* backtrace_str,
-                                int32_t update_mode) {
+    static void UpdateBacktrace(TVMFFIObjectHandle self, const TVMFFIByteArray* backtrace_str, int32_t update_mode) {
         ErrorObjFromStd* obj = static_cast<ErrorObjFromStd*>(self);
         if (update_mode == kTVMFFIBacktraceUpdateModeReplace) {
             obj->backtrace_data_.resize(backtrace_str->size);

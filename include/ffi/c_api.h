@@ -361,8 +361,7 @@ struct TVMFFIErrorCell {
    * \param update_mode The mode to update the backtrace,
    *        can be either kTVMFFIBacktraceUpdateModeReplace, kTVMFFIBacktraceUpdateModeAppend.
    */
-    void (*update_backtrace)(TVMFFIObjectHandle self, const TVMFFIByteArray* backtrace,
-                             int32_t update_mode);
+    void (*update_backtrace)(TVMFFIObjectHandle self, const TVMFFIByteArray* backtrace, int32_t update_mode);
 };
 
 /*!
